@@ -1,0 +1,67 @@
+name: 使用问题
+description: 反馈安装、翻译或输入框交互问题
+title: "[问题] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先阅读[安装与使用说明](https://yangxingzhi.reai.group/zh/products/live-translate)。
+        请勿填写密钥、令牌、私人草稿或完整日志；安全问题请发邮件至 yangchao228@gmail.com。
+  - type: input
+    id: extension_version
+    attributes:
+      label: 插件版本
+      placeholder: "例如：1.0.3"
+    validations:
+      required: true
+  - type: input
+    id: browser_version
+    attributes:
+      label: Chrome 完整版本
+      description: 从 Chrome 的“关于 Google Chrome”查看；暂不支持 Edge。
+      placeholder: "例如：155.0.xxxx.xx"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 操作系统及版本
+      placeholder: "例如：macOS 15 / Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: service
+    attributes:
+      label: 使用的翻译服务
+      options:
+        - Chrome 本机翻译
+        - 火山直连
+        - 自定义服务或兼容代理
+        - 不确定
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 如何复现
+      description: 使用不含私人信息的短示例，说明点击或输入了什么。若与特定网站有关，仅提供公开域名，不附私人页面链接。
+      placeholder: |
+        1. 打开普通网页并将光标放入输入框
+        2. 输入一个已脱敏的短句
+        3. 执行某个操作后出现问题
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: 预期结果与实际结果
+      description: 可附已裁剪、脱敏的截图及界面错误提示；不要上传完整日志或扩展存储。
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私检查
+      options:
+        - label: 我已检查以上内容及附件，不含凭据、私人草稿或个人信息。
+          required: true

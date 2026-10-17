@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安装与使用教程
+    url: https://yangxingzhi.reai.group/zh/products/live-translate
+    about: 查看 Chrome 手动安装、更新和首次语言包准备说明。
+  - name: 安全问题与私密联系
+    url: https://github.com/yangchao228/LiveTranslate/security/policy
+    about: 安全问题请按安全说明通过邮件反馈，不要公开提交。

@@ -1,0 +1,34 @@
+name: 功能建议
+description: 描述一个真实使用场景与希望改善的体验
+title: "[建议] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎先搜索已有 Issue。请使用脱敏示例，不要提交私人草稿或凭据。
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 使用场景与目前的问题
+      description: 你要完成什么任务？目前哪一步不方便？
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: 希望怎样改善
+      description: 描述期待的操作和结果；也可以说明目前的替代方法。
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 相关环境（可选）
+      description: 可填写 Chrome 版本、系统或公开网站域名，不要附私人链接。
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私检查
+      options:
+        - label: 我已检查以上内容及附件，不含凭据、私人草稿或个人信息。
+          required: true
