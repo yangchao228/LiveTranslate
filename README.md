@@ -8,6 +8,12 @@
 
 [下载与安装教程](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.4](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.4) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
 
+## 快速演示
+
+42 秒，静音中文字幕。在真实 ChatGPT 输入框中演示整句自动翻译、Tab 替换、⌥R 手动翻译与复制粘贴。录制使用 Chrome 1.0.4，语言包已准备完成。**译文由你确认，插件不会自动发送消息。**
+
+https://github.com/user-attachments/assets/a038a248-3873-4f3b-93b9-bf4dc27710b2
+
 ![LiveTranslate 在输入框旁显示真实英文译文，提供替换原文与复制译文按钮](assets/preview.png)
 
 上图为 Chrome 1.0.3 使用本机模型翻译固定示例的实际截图。译文仍需根据上下文检查。
