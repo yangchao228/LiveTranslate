@@ -10,9 +10,9 @@
 
 ## 快速演示
 
-29 秒，静音中文字幕。先介绍 AI 提问、英文邮件、海外社区交流等六类用途，再展示整句自动翻译、Tab 替换、⌥R 手动翻译与复制粘贴。画面为 Chrome 1.0.4 的真实 ChatGPT 操作，其他场景为用途示例，语言包已准备完成。**译文由你确认，插件不会自动发送消息。**
+18 秒，静音中文字幕。展示整句自动翻译、Tab 替换、⌥R 手动翻译与复制粘贴，并介绍 AI 提问、英文邮件、海外社区交流等六类用途。画面为 Chrome 1.0.4 的真实 ChatGPT 操作，其他场景为用途示例，语言包已准备完成。**译文由你确认，插件不会自动发送消息。**
 
-https://github.com/user-attachments/assets/ce78c91a-c93c-430c-9d10-431df03d94e7
+https://github.com/user-attachments/assets/f719d65a-cbc6-4a52-8514-7e74e88a4f86
 
 ![LiveTranslate 在输入框旁显示真实英文译文，提供替换原文与复制译文按钮](assets/preview.png)
 
