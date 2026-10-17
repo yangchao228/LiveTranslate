@@ -12,7 +12,7 @@
 
 42 秒，静音中文字幕。在真实 ChatGPT 输入框中演示整句自动翻译、Tab 替换、⌥R 手动翻译与复制粘贴。录制使用 Chrome 1.0.4，语言包已准备完成。**译文由你确认，插件不会自动发送消息。**
 
-https://github.com/user-attachments/assets/a038a248-3873-4f3b-93b9-bf4dc27710b2
+https://github.com/user-attachments/assets/88ff0fde-4316-4939-a1a4-b9c349ba4ddb
 
 ![LiveTranslate 在输入框旁显示真实英文译文，提供替换原文与复制译文按钮](assets/preview.png)
 
