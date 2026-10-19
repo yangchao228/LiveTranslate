@@ -2,7 +2,7 @@
 
 # LiveTranslate
 
-**逛海外社区，别被英文劝退：在当前网页，沉浸式读懂与表达。**
+**不切网页，读懂再表达：沉浸式英文读写体验。**
 
 LiveTranslate 提供沉浸式英文读写体验：不用离开当前网页，划选英文、主动看中文译文，再在当前输入框写中文，完整句结束后翻成英文。核对后复制或在兼容输入框替换，是否发送由你决定。
 
@@ -10,7 +10,7 @@ LiveTranslate 提供沉浸式英文读写体验：不用离开当前网页，划
 
 [个人站下载与安装](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.9](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9) · [查看源码](src) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
 
-<a href="assets/local-reading-writing/cover.png"><img src="assets/local-reading-writing/cover.png" width="460" alt="逛海外社区，别被英文劝退：免费本地模型、隐私保护和 MIT 开源，展示真实 Reddit 阅读与写作浮窗"></a>
+<a href="assets/immersive-reading-writing/cover.png"><img src="assets/immersive-reading-writing/cover.png" width="460" alt="不切网页，读懂再表达：沉浸式英文读写，免费本地模型、隐私保护和 MIT 开源，真实 Reddit 阅读与写作浮窗"></a>
 
 ## 沉浸式英文读写：读懂，再表达
 
@@ -21,19 +21,19 @@ LiveTranslate 提供沉浸式英文读写体验：不用离开当前网页，划
 <details>
 <summary>展开真实截图：划词阅读 → 中文整句 → 确认后复制粘贴（点击图片查看大图）</summary>
 
-### 划词读懂英文
+### 读到哪里不懂，就在附近看中文
 
-<a href="assets/local-reading-writing/reading.png"><img src="assets/local-reading-writing/reading.png" width="460" alt="Reddit 正文英文选区、翻译成中文入口及真实中文译文"></a>
+<a href="assets/immersive-reading-writing/reading.png"><img src="assets/immersive-reading-writing/reading.png" width="460" alt="留在当前网页阅读：Reddit 英文选区、翻译成中文入口及真实中文结果"></a>
 
-### 中文整句输入后再翻译
+### 中文写完整，英文就在旁边
 
-<a href="assets/local-reading-writing/sentence.png"><img src="assets/local-reading-writing/sentence.png" width="460" alt="完整中文问题触发英文译文，Reddit 浮窗保留复制译文按钮与不直接替换提示"></a>
+<a href="assets/immersive-reading-writing/sentence.png"><img src="assets/immersive-reading-writing/sentence.png" width="460" alt="中文完整句末触发输入框旁的英文译文，Reddit 浮窗保留复制按钮与不直接替换提示"></a>
 
-### 确认后复制粘贴
+### 核对后采用，接着参与交流
 
-<a href="assets/local-reading-writing/confirm.png"><img src="assets/local-reading-writing/confirm.png" width="460" alt="真实 Reddit 中文草稿与用户复制粘贴后的英文草稿对照，未发布评论"></a>
+<a href="assets/immersive-reading-writing/confirm.png"><img src="assets/immersive-reading-writing/confirm.png" width="460" alt="在当前网页核对采用：真实 Reddit 中文草稿与用户复制粘贴后的英文草稿，未发布评论"></a>
 
-这组清透蓝白图保留真实 Reddit 截图和原译文，演示草稿未发布。截图未绑定当前发行版本，不代表 X 或所有编辑器均已验收。
+这组清透蓝白图展示沉浸式英文读写，保留真实 Reddit 截图和原译文，演示草稿未发布。截图未绑定当前发行版本，不代表 X 或所有编辑器均已验收。
 
 </details>
 
