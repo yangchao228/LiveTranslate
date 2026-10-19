@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-local/
+releases/
+.cache/
+.venv/
+.env
+.env.*
+*.log
+.DS_Store
+*.pem
+*.key
+__pycache__/
+*.py[cod]

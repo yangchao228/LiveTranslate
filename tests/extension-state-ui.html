@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 启停生命周期回归</title>
+<style>body{font:16px sans-serif;margin:32px}textarea,[contenteditable]{width:500px;min-height:60px;border:1px solid #888}pre{white-space:pre-wrap}</style>
+<h1>启停生命周期回归</h1>
+<p>执行 npm run build:local 后打开。加载实际内容脚本，控制消息和异步返回时机，测试禁用边界。</p>
+<textarea id="input" aria-label="启停测试框"></textarea>
+<div id="dynamic"></div>
+<pre id="results">等待测试…</pre>
+<script>
+window.chrome = window.chrome || {};
+const stateListeners = [];
+const pendingTranslations = [];
+const pendingStorage = [];
+let delayStorage = false;
+let apiCalls = 0;
+chrome.runtime = {
+  onMessage: { addListener(fn) { stateListeners.push(fn); } },
+  sendMessage(message) {
+    if (message.type === 'GET_POPUP_OFFSET') return chrome.storage.local.get('liveTranslatePopupOffset').then(value => ({success:true,offset:value.liveTranslatePopupOffset || null}));
+    if (message.type === 'SET_POPUP_OFFSET' || message.type === 'CLEAR_POPUP_OFFSET') return Promise.resolve({success:true});
+    if (message.type === 'GET_TRANSLATION_CONFIG') return Promise.resolve({success:true,config:{provider:'volcengine',revision:'initial'}});
+    if (message.type === 'GET_EXTENSION_STATE') return Promise.resolve({ enabled: true });
+    return new Promise(callback => {
+    apiCalls++;
+    pendingTranslations.push(callback);
+    });
+  }
+};
+chrome.storage = { local: {
+  get() { return delayStorage ? new Promise(resolve => pendingStorage.push(resolve)) : Promise.resolve({}); },
+  async set() {}, async remove() {}
+} };
+window.testResults = [];
+window.testErrors = [];
+window.addEventListener('error', event => testErrors.push(event.message));
+window.addEventListener('unhandledrejection', event => testErrors.push(String(event.reason)));
+</script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+window.addEventListener('load', async () => {
+  const settle = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const input = document.getElementById('input');
+  const popupCount = () => document.querySelectorAll('.live-translate-enhanced-popup').length;
+  const record = (name, actual, expected) => testResults.push({ name, actual, expected, passed: actual === expected });
+  const state = enabled => stateListeners.forEach(fn => fn({ type: 'EXTENSION_STATE_CHANGED', enabled }));
+  const type = (text, target = input) => {
+    if ('value' in target) target.value = text; else target.textContent = text;
+    target.focus();
+    if ('setSelectionRange' in target) target.setSelectionRange(text.length, text.length);
+    else { const r = document.createRange(); r.selectNodeContents(target); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r); }
+    target.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  };
+  const response = error => pendingTranslations.splice(0).forEach(callback => callback(error
+    ? { success: false, error: '测试延迟失败' }
+    : { success: true, data: { translatedText: 'Translation.', detectedSourceLanguage: 'zh' } }));
+  const reset = async () => { state(false); response(); await settle(260); state(true); await settle(30); };
+  try {
+    await settle(50);
+    type('关闭前预览');
+    await settle(30);
+    record('启用时未完成句保持安静', popupCount(), 0);
+    state(false);
+    record('禁用立即移除弹框', popupCount(), 0);
+    await settle(260);
+    const callsBefore = apiCalls;
+    type('关闭后输入。');
+    await settle(30);
+    record('禁用后输入不弹框', popupCount(), 0);
+    record('禁用后不发翻译请求', apiCalls, callsBefore);
+    const dynamic = document.createElement('div');
+    dynamic.contentEditable = 'true';
+    document.getElementById('dynamic').appendChild(dynamic);
+    await settle(30);
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    dynamic.dispatchEvent(tab);
+    record('禁用后新增编辑器不拦截 Tab', tab.defaultPrevented, false);
+
+    await reset();
+    type('请求尚未完成。');
+    await settle(360);
+    state(false);
+    await settle(260);
+    response();
+    await settle(30);
+    record('禁用后旧请求成功不弹框', popupCount(), 0);
+
+    await reset();
+    type('开关之间返回成功。');
+    await settle(360);
+    state(false);
+    await settle(260);
+    state(true);
+    response();
+    await settle(30);
+    record('重新启用后旧请求仍不可弹框', popupCount(), 0);
+
+    await reset();
+    type('开关之间返回失败。');
+    await settle(360);
+    state(false);
+    await settle(260);
+    state(true);
+    response(true);
+    await settle(30);
+    record('重新启用后旧请求错误不可弹框', popupCount(), 0);
+
+    await reset();
+    delayStorage = true;
+    type('异步创建尚未完成。');
+    await settle(360);
+    state(false);
+    delayStorage = false;
+    pendingStorage.splice(0).forEach(resolve => resolve({}));
+    await settle(30);
+    record('禁用使尚未完成的弹框创建失效', popupCount(), 0);
+    await settle(260);
+
+    for (let i = 0; i < 5; i++) {
+      state(true);
+      type('反复启停请求' + i + '。');
+      await settle(360);
+      state(false);
+    }
+    state(true);
+    type('最终启用输入。');
+    await settle(360);
+    record('快速启停后只保留当前弹框', popupCount(), 1);
+    type('恢复后动态输入。', dynamic);
+    await settle(360);
+    response();
+    await settle(30);
+    record('重新启用后动态编辑器恢复整句翻译', document.querySelector('.original-text')?.textContent, '恢复后动态输入。');
+    state(false);
+    await settle(260);
+    record('最终关闭无残留弹框', popupCount(), 0);
+    record('浏览器无未处理错误', testErrors.length, 0);
+  } catch (error) { testErrors.push(String(error)); }
+  document.getElementById('results').textContent = JSON.stringify({ results: testResults, errors: testErrors }, null, 2);
+  window.testsFinished = true;
+});
+</script>
+</html>

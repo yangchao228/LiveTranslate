@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 替换光标回归</title>
+<style>body{font:16px sans-serif;margin:32px}input,textarea,[contenteditable]{width:500px;min-height:45px;border:1px solid #888;margin:8px}pre{white-space:pre-wrap}</style>
+<h1>替换光标回归</h1>
+<p>加载实际内容脚本，模拟延迟翻译；检查替换后光标偏移与继续输入的位置。</p>
+<input id="plain" type="text" aria-label="普通输入框">
+<textarea id="multiline" aria-label="多行输入框"></textarea>
+<div id="rich" contenteditable="true" aria-label="富文本编辑器"></div>
+<pre id="results">等待测试…</pre>
+<script>
+window.chrome = window.chrome || {};
+chrome.runtime = {
+  onMessage: { addListener() {} },
+  sendMessage(message) {
+    if (message.type === 'GET_POPUP_OFFSET') return chrome.storage.local.get('liveTranslatePopupOffset').then(value => ({success:true,offset:value.liveTranslatePopupOffset || null}));
+    if (message.type === 'SET_POPUP_OFFSET' || message.type === 'CLEAR_POPUP_OFFSET') return Promise.resolve({success:true});
+    if (message.type === 'GET_TRANSLATION_CONFIG') return Promise.resolve({success:true,config:{provider:'volcengine',revision:'initial'}});
+    if (message.type === 'GET_EXTENSION_STATE') return Promise.resolve({ enabled: true });
+    return new Promise(callback => {
+    setTimeout(() => callback({ success: true, data: { translatedText: 'Hello?', detectedSourceLanguage: 'zh' } }), 30);
+    });
+  }
+};
+chrome.storage = { local: { async get() { return {}; }, async set() {}, async remove() {} } };
+</script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+window.testResults = [];
+window.testErrors = [];
+window.addEventListener('unhandledrejection', e => testErrors.push(String(e.reason)));
+window.addEventListener('load', async () => {
+  const settle = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const record = (name, actual, expected) => testResults.push({ name, actual, expected, passed: actual === expected });
+  const read = element => 'value' in element ? element.value : element.textContent;
+  const write = (element, value) => {
+    if ('value' in element) element.value = value; else element.textContent = value;
+    element.focus();
+    if ('setSelectionRange' in element) element.setSelectionRange(value.length, value.length);
+    else { const r = document.createRange(); r.selectNodeContents(element); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r); }
+    element.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  };
+  const caret = element => {
+    if ('selectionStart' in element) return element.selectionStart;
+    const selection = getSelection();
+    if (!selection.rangeCount || !element.contains(selection.focusNode)) return -1;
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.setEnd(selection.focusNode, selection.focusOffset);
+    return range.toString().length;
+  };
+  // 模拟编辑器接收 input 后把单一文本节点重新组织为嵌套节点。
+  const rich = document.getElementById('rich');
+  rich.addEventListener('input', () => {
+    if (!rich.textContent.includes('Hello.')) return;
+    const text = rich.textContent;
+    const paragraph = document.createElement('p');
+    const span = document.createElement('span');
+    span.textContent = text.slice(0, 3);
+    paragraph.append(span, document.createTextNode(text.slice(3)));
+    rich.replaceChildren(paragraph);
+  });
+  await settle(50);
+  for (const id of ['plain', 'multiline', 'rich']) {
+    for (const mode of ['整句 Tab', '前后文 Tab', '前后文按钮']) {
+      const element = document.getElementById(id);
+      const prefix = mode === '整句 Tab' ? '' : '前句🙂。';
+      const suffix = mode === '整句 Tab' ? '' : '后续草稿';
+      element.focus();
+      // 各用例使用不同原文以避开缓存，确保后续文本是在译文返回之前输入。
+      write(element, prefix + '你好' + id + mode + '。');
+      if (suffix) write(element, read(element) + suffix);
+      await settle(400);
+      if (mode.includes('按钮')) {
+        const button = document.querySelector('.action-replace');
+        button?.focus();
+        button?.click();
+      } else {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+      }
+      await settle(30);
+      const name = id + ' ' + mode;
+      record(name + ' 保留前后文', read(element), prefix + 'Hello.' + suffix);
+      record(name + ' 光标在本次译文标点之后', caret(element), prefix.length + 'Hello.'.length);
+      record(name + ' 输入焦点返回编辑器', document.activeElement === element, true);
+      // 让浏览器依照真实 Selection 插入字符，避免测试代码自行指定插入位置。
+      document.execCommand('insertText', false, 'x');
+      record(name + ' 继续输入位置正确', read(element), prefix + 'Hello.x' + suffix);
+      element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await settle(30);
+    }
+  }
+  // Reddit 等富文本编辑器可能在内部子节点拦截 Tab 冒泡；捕获阶段仍应替换当前句子。
+  const nested = document.createElement('div');
+  nested.id = 'nested'; nested.contentEditable = 'true'; nested.setAttribute('aria-label', '嵌套富文本编辑器');
+  nested.innerHTML = '<span id="nested-child"></span>'; document.body.appendChild(nested);
+  await settle(50);
+  write(nested, '你好嵌套事件。'); await settle(400);
+  const child = document.createElement('span'); child.id = 'nested-child'; child.tabIndex = 0; child.textContent = nested.textContent;
+  nested.replaceChildren(child); child.addEventListener('keydown', event => event.stopPropagation());
+  child.focus(); child.textContent = '你好子节点聚焦。';
+  const childRange = document.createRange(); childRange.selectNodeContents(child); childRange.collapse(false);
+  getSelection().removeAllRanges(); getSelection().addRange(childRange);
+  child.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '。' }));
+  await settle(400);
+  record('富文本子节点聚焦仍能翻译', document.querySelector('.original-text')?.textContent, '你好子节点聚焦。');
+  child.focus(); const nestedRange = document.createRange(); nestedRange.selectNodeContents(child); nestedRange.collapse(false);
+  getSelection().removeAllRanges(); getSelection().addRange(nestedRange);
+  const nestedTab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }); child.dispatchEvent(nestedTab);
+  await settle(30);
+  record('嵌套富文本捕获 Tab', nested.textContent, 'Hello.');
+  record('嵌套富文本捕获 Tab 阻止默认行为', nestedTab.defaultPrevented, true);
+  document.getElementById('results').textContent = JSON.stringify({ results: testResults, errors: testErrors }, null, 2);
+  window.testsFinished = true;
+});
+</script>
+</html>

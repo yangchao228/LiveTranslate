@@ -1,0 +1,33 @@
+/* LiveTranslate Content Styles */
+
+/* 悬浮窗样式已内联在floating-popup.ts中 */
+
+/* 输入元素高亮效果 */
+.live-translate-active {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .live-translate-popup {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #e2e8f0 !important;
+  }
+  
+  .live-translate-popup .translate-text {
+    color: #e2e8f0 !important;
+  }
+  
+  .live-translate-popup button {
+    background: #4a5568 !important;
+    border-color: #718096 !important;
+    color: #e2e8f0 !important;
+  }
+  
+  .live-translate-popup .replace-btn {
+    background: #3182ce !important;
+    border-color: #3182ce !important;
+  }
+}

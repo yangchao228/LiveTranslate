@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 网页划词英译中回归</title>
+<style>
+  * { box-sizing: border-box }
+  body { font: 16px/1.6 system-ui, sans-serif; margin: 24px; color: #18253d; background: #f5f7fa }
+  main { max-width: 740px; margin: auto; padding: 24px; border: 1px solid #dce2ec; border-radius: 12px; background: white }
+  h1 { font-size: 24px; margin-top: 0 }
+  article { padding: 8px 0 }
+  article p { margin: 10px 0 }
+  textarea, input, [contenteditable] { display: block; width: 100%; min-height: 44px; margin: 12px 0; border: 1px solid #aab6ca }
+  #bottom { position: fixed; right: 12px; bottom: 8px; max-width: min(270px, calc(100vw - 24px)); background: white; border: 1px solid #dce2ec; padding: 8px; z-index: 1 }
+  #long { display: none }
+  pre { max-height: 180px; overflow: auto; font-size: 12px; white-space: pre-wrap }
+</style>
+<main>
+  <h1>网页划词英译中</h1>
+  <p>实际内容脚本构建；Chrome、翻译接口与剪贴板均为替身，不访问真实服务。</p>
+  <article id="article">
+    <p id="english">Choose this English sentence to understand the message.</p>
+    <p id="other">A different passage should own its own translation.</p>
+    <p id="cross">A shared <strong>context crosses</strong> inline nodes.</p>
+    <div id="paragraphs"><p>First paragraph.</p><p>Second paragraph.</p></div>
+    <p id="chinese">这是中文正文，不需要划词英译中。</p>
+    <p id="mixed">English 和中文混合正文。</p>
+    <p id="long"></p>
+  </article>
+  <textarea id="draft" aria-label="原有中译英输入框"></textarea>
+  <input id="plain-input" value="English input selection">
+  <div id="rich" contenteditable="true">English editable selection</div>
+  <button id="outside">网页按钮</button>
+  <pre id="results">等待测试…</pre>
+</main>
+<p id="bottom">A reading preview near the bottom.</p>
+<script>
+window.testResults = []; window.testErrors = []; window.requests = []; window.messageResponses = [];
+window.testCopiedText = ''; window.testClipboardFailure = false; window.delayPosition = false;
+window.positionMessages=[];window.delayState=false;
+window.extensionState={enabled:false,readingEnabled:true};
+window.preparationMessages=[];window.testPreparationFailure=false;
+const listeners = [], positionWaiters = [], stateWaiters=[];
+let currentRevision = 'selection-initial';
+window.chrome = window.chrome || {};
+chrome.runtime = {
+  onMessage: { addListener(fn) { listeners.push(fn); }, removeListener(fn) { const index = listeners.indexOf(fn); if (index >= 0) listeners.splice(index, 1); } },
+  sendMessage(message) {
+    if (message.type === 'GET_POPUP_OFFSET') { window.positionMessages.push(message.type);return window.delayPosition
+      ? new Promise(resolve => positionWaiters.push(resolve)) : Promise.resolve({success:true,offset:null}); }
+    if (message.type === 'SET_POPUP_OFFSET' || message.type === 'CLEAR_POPUP_OFFSET') {window.positionMessages.push(message.type);return Promise.resolve({success:true});}
+    if (message.type === 'GET_TRANSLATION_CONFIG') return Promise.resolve({success:true,config:{provider:'custom',revision:currentRevision}});
+    if (message.type === 'GET_EXTENSION_STATE') return window.delayState ? new Promise(resolve=>stateWaiters.push(resolve)) : Promise.resolve({...window.extensionState});
+    if (message.type === 'OPEN_READING_PREPARATION') {
+      window.preparationMessages.push(message);
+      return Promise.resolve({success:!window.testPreparationFailure});
+    }
+    if (message.type === 'TRANSLATE_REMOTE') return new Promise(resolve => {
+      requests.push({ ...message.request, revision:message.revision,
+        resolve: (translatedText = '这是一段中文译文。') => resolve({success:true,data:{translatedText}}),
+        reject: () => resolve({success:false,error:'受控翻译失败'}) });
+    });
+    return Promise.resolve({success:true});
+  }
+};
+chrome.storage = {local:{async get(){return {}},async set(){},async remove(){}}};
+Object.defineProperty(navigator, 'clipboard', {configurable:true,value:{async writeText(text){
+  if (window.testClipboardFailure) throw new Error('受控剪贴板拒绝');
+  window.testCopiedText = text;
+}}});
+addEventListener('error', event => testErrors.push(event.message));
+addEventListener('unhandledrejection', event => testErrors.push(String(event.reason)));
+</script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+addEventListener('load', async () => {
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const draft = document.getElementById('draft');
+  const popup = () => document.querySelector('.live-translate-enhanced-popup');
+  const trigger = () => document.getElementById('live-translate-selection-trigger');
+  const triggerButton = () => trigger()?.shadowRoot?.querySelector('button');
+  const translated = () => popup()?.querySelector('.translated-text')?.textContent;
+  const record = (name, actual, expected) => testResults.push({name,actual,expected,passed:actual===expected});
+  const message = (type, extra = {}) => {
+    if(type==='EXTENSION_STATE_CHANGED')window.extensionState.enabled=extra.enabled;
+    if(type==='READING_STATE_CHANGED')window.extensionState.readingEnabled=extra.enabled;
+    let response;
+    listeners.slice().forEach(listener => listener({type,...extra},{},value => {response=value;messageResponses.push({type,value});}));
+    return response;
+  };
+  const select = async (id, start = null, end = null) => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const element = document.getElementById(id), range = document.createRange();
+    if (start === null) range.selectNodeContents(element);
+    else { range.setStart(element.firstChild,start);range.setEnd(element.firstChild,end); }
+    getSelection().removeAllRanges();getSelection().addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+    await wait(130);
+    return getSelection().toString();
+  };
+  const clearSelection = async () => {
+    getSelection().removeAllRanges();document.dispatchEvent(new Event('selectionchange'));await wait(130);
+  };
+  const clickTrigger = async () => { triggerButton()?.click();await wait(35); };
+  const dismiss = () => document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+  const tab = target => {const event=new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true});target.dispatchEvent(event);return event.defaultPrevented;};
+  const reset = async ({enabled=true,readingEnabled=true}={}) => {
+    message('EXTENSION_STATE_CHANGED',{enabled:false});
+    message('READING_STATE_CHANGED',{enabled:false});
+    requests.splice(0).forEach(request=>request.resolve());
+    window.delayPosition=false;positionWaiters.splice(0).forEach(resolve=>resolve({success:true,offset:null}));
+    window.delayState=false;stateWaiters.splice(0).forEach(resolve=>resolve({enabled:false,readingEnabled:false}));
+    getSelection().removeAllRanges();draft.value='';draft.blur();
+    window.testClipboardFailure=false;window.testCopiedText='';
+    window.preparationMessages=[];window.testPreparationFailure=false;
+    currentRevision=`selection-${Date.now()}-${Math.random()}`;
+    message('TRANSLATION_CONFIG_CHANGED',{config:{provider:'custom',revision:currentRevision}});
+    message('EXTENSION_STATE_CHANGED',{enabled});
+    message('READING_STATE_CHANGED',{enabled:readingEnabled});
+    await wait(35);
+  };
+  const inViewport = element => {
+    const box=element?.getBoundingClientRect();
+    return !!box&&box.width>0&&box.height>0&&box.left>=0&&box.right<=innerWidth+1&&box.top>=0&&box.bottom<=innerHeight+1;
+  };
+  try {
+    await wait(80);
+    draft.focus();draft.value='只有划词开启时不自动翻译输入。';draft.setSelectionRange(draft.value.length,draft.value.length);
+    draft.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(360);
+    record('初始写作关闭时不自动发送中译英',requests.length,0);
+    const initialWritingResponse=message('TRANSLATE_SELECTION');await wait(30);
+    record('初始写作关闭时手动草稿明确拒绝',initialWritingResponse?.success,false);
+    record('初始写作关闭时手动草稿不发送请求',requests.length,0);
+    draft.value='';draft.blur();
+    const original = await select('english');
+    record('初始写作关闭且划词开启仍显示正文入口',!!trigger(),true);
+    record('选中正文只显示入口，不发送翻译',requests.length,0);
+    record('入口在开放 Shadow DOM 中可读',triggerButton()?.textContent?.includes('翻译成中文'),true);
+    record('正文划词入口位于视口内',inViewport(trigger()),true);
+    record('划词入口只有一个原生按钮',trigger()?.shadowRoot?.querySelectorAll('button').length,1);
+    record('入口保留完整可访问名称',triggerButton()?.getAttribute('aria-label'),'将选中的英文翻译成中文');
+    record('入口是紧凑的 32px 胶囊',Math.abs(triggerButton().getBoundingClientRect().height-32)<1,true);
+    record('入口使用实心句隙标志',triggerButton()?.querySelectorAll('svg path').length,2);
+    record('装饰标志不重复朗读',triggerButton()?.querySelector('svg')?.getAttribute('aria-hidden'),'true');
+    record('标志保持 16px 大小',triggerButton()?.querySelector('svg')?.getBoundingClientRect().width,16);
+    const hostileStyle=document.createElement('style');
+    hostileStyle.textContent='#live-translate-selection-trigger button{background:#000!important;font-size:42px!important} #live-translate-selection-trigger svg{width:90px!important;fill:red!important}';
+    document.head.appendChild(hostileStyle);
+    record('Shadow DOM 隔离宿主按钮样式',getComputedStyle(triggerButton()).fontSize,'13px');
+    record('宿主 SVG 样式不能撑大标志',triggerButton()?.querySelector('svg')?.getBoundingClientRect().width,16);
+    hostileStyle.remove();
+    triggerButton()?.focus();
+    record('入口支持键盘聚焦',trigger()?.shadowRoot?.activeElement===triggerButton(),true);
+    record('入口键盘焦点清晰可见',getComputedStyle(triggerButton()).outlineStyle,'solid');
+    record('减少动效时入口不播放过渡',!matchMedia('(prefers-reduced-motion: reduce)').matches||getComputedStyle(triggerButton()).transitionDuration==='0s',true);
+    const press=new MouseEvent('mousedown',{bubbles:true,cancelable:true});triggerButton()?.dispatchEvent(press);
+    record('鼠标按下入口保留正文选区',press.defaultPrevented&&getSelection().toString()===original,true);
+    await clickTrigger();
+    record('加载状态只显示进度和关闭',popup()?.querySelectorAll('button').length,1);
+    record('加载状态没有原文和品牌抬头',!!popup()?.querySelector('.original-text,.brand,.popup-header'),false);
+    record('加载状态保留具体进度',popup()?.querySelector('.preview-text')?.textContent?.includes('正在翻译成中文'),true);
+    record('点击入口仅发送一次',requests.length,1);
+    record('完整发送当前英文选区',requests[0]?.text,original);
+    record('划词显式指定英文源语言',requests[0]?.sourceLang,'en');
+    record('划词显式指定中文目标语言',requests[0]?.targetLang,'zh');
+    requests[0]?.resolve('选择这句英文以理解消息。');await wait(70);
+    record('阅读浮窗只显示中文译文',translated(),'选择这句英文以理解消息。');
+    record('阅读浮窗不重复原文',!!popup()?.querySelector('.original-text'),false);
+    record('阅读浮窗没有语言标签和品牌标题',!!popup()?.querySelector('.text-label,.brand,.popup-header'),false);
+    record('阅读浮窗没有拖动手柄',!!popup()?.querySelector('.draggable-handle'),false);
+    record('阅读成功只有复制和关闭两个操作',popup()?.querySelectorAll('button').length,2);
+    record('短中文浮窗保持紧凑',popup()?.offsetHeight<150,true);
+    record('译文保留中文语言语义',popup()?.querySelector('.translated-text')?.lang,'zh');
+    record('译文仍可直接选中',getComputedStyle(popup().querySelector('.translated-text')).userSelect,'text');
+    record('复制图标有可访问名称',popup()?.querySelector('.action-copy')?.getAttribute('aria-label'),'复制译文');
+    popup()?.querySelector('.action-copy')?.focus();
+    record('复制操作可由键盘聚焦',document.activeElement===popup()?.querySelector('.action-copy'),true);
+    record('复制焦点样式明确',getComputedStyle(popup().querySelector('.action-copy')).outlineStyle,'solid');
+    record('阅读结果没有替换按钮',!!popup()?.querySelector('.action-replace'),false);
+    record('阅读结果不劫持 Tab',tab(document.body),false);
+    record('显示译文没有修改正文',document.getElementById('english').textContent,original);
+    popup()?.querySelector('.action-copy')?.click();await wait(20);
+    record('复制通过剪贴板替身接收中文',window.testCopiedText,'选择这句英文以理解消息。');
+    record('复制成功有反馈',popup()?.querySelector('.reading-feedback')?.textContent,'已复制');
+    window.testClipboardFailure=true;popup()?.querySelector('.action-copy')?.click();await wait(20);
+    record('复制失败有明确反馈和手动复制退路',popup()?.querySelector('.reading-feedback')?.textContent,'复制失败，请选中译文手动复制。');
+    record('复制失败保留完整译文',translated(),'选择这句英文以理解消息。');
+    dismiss();await wait(30);record('Esc 关闭阅读浮窗',!!popup(),false);
+
+    await reset();await select('english');
+    message('TRANSLATE_PAGE_SELECTION');await wait(35);
+    record('手动快捷键消息使用正文选区',requests[0]?.text,original);
+    requests[0]?.resolve('快捷键中文结果。');await wait(60);
+    record('快捷键结果可阅读',translated(),'快捷键中文结果。');
+    popup()?.querySelector('.header-close')?.click();await wait(20);
+    record('关闭按钮关闭阅读结果',!!popup(),false);
+
+    await reset();await select('english');await clickTrigger();await clearSelection();
+    requests[0]?.resolve('迟到的取消结果。');await wait(60);
+    record('取消选区清理入口和迟到结果',!!trigger()||!!popup(),false);
+
+    await reset();await select('english');await clickTrigger();
+    const secondText=await select('other');
+    requests[0]?.resolve('旧选区结果。');await wait(50);
+    record('改变选区不显示旧结果',!!popup(),false);
+    await clickTrigger();requests[1]?.resolve('新选区结果。');await wait(60);
+    record('改变选区后可发起新请求',requests[1]?.text,secondText);
+    record('旧响应不能覆盖新选区',translated(),'新选区结果。');
+
+    await reset();await select('english');await clickTrigger();
+    const rapidRange=document.createRange();rapidRange.selectNodeContents(document.getElementById('other'));
+    getSelection().removeAllRanges();getSelection().addRange(rapidRange);document.dispatchEvent(new Event('selectionchange'));
+    requests[0]?.resolve('不能在合并延迟内闪现的旧译文。');await wait(25);
+    record('选区变化后在 80ms 合并前也不显示旧译文',translated(),undefined);
+    await wait(110);record('选区合并结束只保留新入口',!!trigger()&&!popup(),true);
+
+    await reset();await select('english');await clickTrigger();
+    const sourceNode=document.getElementById('english').firstChild, sourceText=sourceNode.data;
+    sourceNode.data='The page script rewrote the source before translation finished.';
+    requests[0]?.resolve('不能覆盖脚本改写正文的旧译文。');await wait(25);
+    record('正文被脚本改写后立即拒绝旧译文',translated(),undefined);
+    record('脚本更新正文不会被翻译流程写回',sourceNode.data,'The page script rewrote the source before translation finished.');
+    await wait(120);record('正文改写后的旧加载浮窗被清理',!!popup(),false);
+    await reset();sourceNode.data=sourceText;
+
+    await reset();await select('english');await clickTrigger();
+    message('TRANSLATION_CONFIG_CHANGED',{config:{provider:'custom',revision:'selection-next-service'}});
+    requests[0]?.resolve('旧服务结果。');await wait(70);
+    record('切换服务使旧入口和结果失效',!!trigger()||!!popup(),false);
+    await select('english');await clickTrigger();
+    record('服务变化后请求携带新修订号',requests[1]?.revision,'selection-next-service');
+    requests[1]?.resolve('新服务结果。');await wait(50);
+    record('服务切换后可重新划词翻译',translated(),'新服务结果。');
+
+    await reset();await select('english');await clickTrigger();
+    message('READING_STATE_CHANGED',{enabled:false});requests[0]?.resolve('关闭划词后迟到结果。');await wait(60);
+    record('关闭划词时入口和结果都移除',!!trigger()||!!popup(),false);
+    message('READING_STATE_CHANGED',{enabled:true});await wait(130);
+    record('重新启用划词不复活旧请求',!!popup(),false);
+
+    await reset();await select('english');await clickTrigger();
+    draft.focus();requests[0]?.resolve('切换编辑器后的结果。');await wait(70);
+    record('切换编辑器取消阅读请求',!!popup()||!!trigger(),false);
+    record('迟到阅读结果不抢回编辑焦点',document.activeElement===draft,true);
+
+    await reset();await select('english');await clickTrigger();
+    window.dispatchEvent(new Event('scroll'));requests[0]?.resolve('滚动后迟到结果。');await wait(60);
+    record('滚动使入口和旧响应失效',!!trigger()||!!popup(),false);
+
+    await reset();await select('english');await clickTrigger();
+    dismiss();requests[0]?.resolve('Esc 之后的结果。');await wait(60);
+    record('加载期间 Esc 阻止旧结果复活',!!popup()||!!trigger(),false);
+
+    await reset();await select('english');await clickTrigger();
+    requests[0]?.reject();await wait(70);
+    record('失败保留翻译服务返回的具体原因',popup()?.querySelector('.preview-text')?.textContent?.includes('受控翻译失败'),true);
+    record('错误状态没有重复的划词入口',!!trigger(),false);
+    record('错误状态提供独立重试按钮',!!popup()?.querySelector('.action-retry'),true);
+    record('错误状态仍保持紧凑',popup()?.offsetHeight<160,true);
+    popup()?.querySelector('.action-retry')?.click();await wait(35);
+    record('点击重试仍使用原英文选区',requests[1]?.text,original);
+    requests[1]?.resolve('重试后可正常阅读。');await wait(60);
+    record('显式重试恢复精简译文',translated(),'重试后可正常阅读。');
+
+    await reset();await select('english');
+    message('READING_STATE_CHANGED',{enabled:false});await wait(30);
+    record('独立关闭划词后隐藏入口',!!trigger(),false);
+    const disabledResponse=message('TRANSLATE_PAGE_SELECTION');await wait(30);
+    record('划词关闭后手动命令给明确提示',disabledResponse?.error?.includes('划词英译中已关闭'),true);
+    record('划词关闭后手动命令不发送请求',requests.length,0);
+    await select('other');record('关闭状态的新正文选区保持安静',!!trigger(),false);
+    message('EXTENSION_STATE_CHANGED',{enabled:false});message('EXTENSION_STATE_CHANGED',{enabled:true});
+    await select('english');record('切换输入开关仍保留划词关闭状态',!!trigger(),false);
+    draft.focus();draft.value='划词关闭后仍能自动输入翻译。';draft.setSelectionRange(draft.value.length,draft.value.length);
+    draft.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(360);
+    record('独立关闭划词不影响自动中译英',requests[0]?.targetLang,'en');
+    requests[0]?.resolve('Writing still works.');await wait(60);dismiss();
+    draft.focus();draft.value='划词关闭后仍能手动翻译';draft.setSelectionRange(draft.value.length,draft.value.length);
+    message('TRANSLATE_SELECTION');await wait(35);
+    record('独立关闭划词不影响手动中译英',requests[1]?.targetLang,'en');
+    requests[1]?.resolve('Manual writing still works.');await wait(60);dismiss();draft.blur();
+    message('READING_STATE_CHANGED',{enabled:true});await select('other');await clickTrigger();
+    record('重新启用后新选区恢复英译中',requests[2]?.targetLang,'zh');
+    requests[2]?.resolve('重新开启后的阅读译文。');await wait(60);
+    record('重新开启后可阅读译文',translated(),'重新开启后的阅读译文。');
+
+    await reset();await select('english');await clickTrigger();
+    message('READING_STATE_CHANGED',{enabled:false});requests[0]?.resolve('划词关闭后的迟到译文。');await wait(70);
+    record('独立关闭使加载与迟到结果失效',!!popup()||!!trigger(),false);
+
+    await reset({enabled:false,readingEnabled:true});await select('english');
+    record('只开划词时正文入口仍可用',!!trigger(),true);
+    const readingOnlyResponse=message('TRANSLATE_PAGE_SELECTION');await wait(35);
+    record('只开划词时正文手动命令成功受理',readingOnlyResponse?.success,true);
+    record('只开划词时手动命令仅发送一个阅读请求',requests.length,1);
+    record('只开划词时手动方向仍为英译中',requests[0]?.sourceLang==='en'&&requests[0]?.targetLang==='zh',true);
+    const readingLoading=popup();
+    message('EXTENSION_STATE_CHANGED',{enabled:true});await wait(30);
+    record('开启输入不删除阅读加载浮窗',!!readingLoading&&popup()===readingLoading,true);
+    message('EXTENSION_STATE_CHANGED',{enabled:false});await wait(30);
+    record('关闭输入不删除阅读加载浮窗',!!readingLoading&&popup()===readingLoading,true);
+    requests[0]?.resolve('输入关闭时仍可阅读。');await wait(70);
+    record('输入关闭不阻断进行中的阅读结果',translated(),'输入关闭时仍可阅读。');
+    const readingResult=popup();
+    message('EXTENSION_STATE_CHANGED',{enabled:true});await wait(30);
+    record('切回输入保留阅读成功结果',popup()===readingResult&&translated()==='输入关闭时仍可阅读。',true);
+    message('EXTENSION_STATE_CHANGED',{enabled:false});await wait(30);
+    record('再次关闭输入保留阅读成功结果',popup()===readingResult&&translated()==='输入关闭时仍可阅读。',true);
+    record('切换输入开关不额外发送请求',requests.length,1);
+
+    await reset();draft.focus();draft.value='即将关闭的输入请求。';draft.setSelectionRange(draft.value.length,draft.value.length);
+    draft.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(360);
+    record('关闭输入前确实存在待完成写作请求',requests.length===1&&requests[0]?.targetLang==='en',true);
+    message('EXTENSION_STATE_CHANGED',{enabled:false});await wait(30);
+    record('关闭输入清除当前写作加载浮窗',!!popup(),false);
+    const disabledWritingResponse=message('TRANSLATE_SELECTION');await wait(30);
+    record('关闭输入时草稿手动命令明确拒绝',disabledWritingResponse?.success,false);
+    record('关闭输入时草稿手动命令不新增请求',requests.length,1);
+    await select('english');await clickTrigger();
+    record('关闭输入后仍可点击划词入口',requests.length===2&&requests[1]?.targetLang==='zh',true);
+    const independentReadingLoading=popup();
+    requests[0]?.resolve('The obsolete writing response.');await wait(70);
+    record('关闭输入后的迟到写作结果不替换阅读加载',!!independentReadingLoading&&popup()===independentReadingLoading&&translated()===undefined,true);
+    record('迟到写作结果不修改原草稿',draft.value,'即将关闭的输入请求。');
+    requests[1]?.resolve('迟到写作不影响阅读。');await wait(70);
+    record('迟到写作完成后阅读仍正常成功',translated(),'迟到写作不影响阅读。');
+    message('EXTENSION_STATE_CHANGED',{enabled:true});await wait(30);
+    record('恢复输入不复活旧写作结果或删除阅读',translated(),'迟到写作不影响阅读。');
+
+    await reset({enabled:false,readingEnabled:false});await select('english');
+    record('两开关均关闭时没有正文入口',!!trigger(),false);
+    const bothDisabledReading=message('TRANSLATE_PAGE_SELECTION');await wait(30);
+    record('两开关均关闭时正文手动明确拒绝',bothDisabledReading?.success,false);
+    draft.focus();draft.value='两条功能均关闭。';draft.setSelectionRange(draft.value.length,draft.value.length);
+    draft.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(360);
+    record('两开关均关闭时输入保持安静',requests.length,0);
+
+    await reset();window.delayPosition=true;const positionReadsBefore=window.positionMessages.length;await select('english');await clickTrigger();
+    record('阅读加载不读取写作浮窗位置',window.positionMessages.length,positionReadsBefore);
+    await clearSelection();requests[0]?.resolve('延迟挂载结果。');
+    window.delayPosition=false;positionWaiters.splice(0).forEach(resolve=>resolve({success:true,offset:null}));await wait(70);
+    record('无需位置读取也拒绝已取消结果',!!popup(),false);
+
+    await reset();await select('chinese');
+    record('纯中文正文不显示英译中入口',!!trigger(),false);
+    message('TRANSLATE_PAGE_SELECTION');await wait(30);record('纯中文正文不发送翻译',requests.length,0);
+    await select('mixed');record('中英混合正文保持安静',!!trigger(),false);
+    await select('rich');record('富文本编辑器选区不显示阅读入口',!!trigger(),false);
+    message('TRANSLATE_PAGE_SELECTION');await wait(30);record('富文本选区不进入阅读翻译',requests.length,0);
+    const input=document.getElementById('plain-input');input.focus();input.setSelectionRange(0,input.value.length);
+    document.dispatchEvent(new Event('selectionchange'));await wait(130);
+    record('普通输入框选区不显示阅读入口',!!trigger(),false);
+    message('TRANSLATE_PAGE_SELECTION');await wait(30);record('普通输入框不进入阅读翻译',requests.length,0);
+
+    await reset();const long=document.getElementById('long');long.style.display='block';long.textContent='E'.repeat(5001);
+    await select('long');record('超过 5000 UTF16 不显示入口',!!trigger(),false);
+    message('TRANSLATE_PAGE_SELECTION');await wait(30);record('超长选区不发送请求',requests.length,0);
+    long.style.display='none';long.textContent='';
+
+    await reset();const crossText=await select('cross');await clickTrigger();
+    record('跨内联节点选区保持完整',requests[0]?.text,crossText);
+    requests[0]?.resolve('上下文跨越内联节点。');await wait(50);
+    const translatedNode=popup()?.querySelector('.translated-text');
+    if(translatedNode){const range=document.createRange();range.selectNodeContents(translatedNode);getSelection().removeAllRanges();getSelection().addRange(range);document.dispatchEvent(new Event('selectionchange'));}
+    await wait(130);record('选中浮窗译文不产生新入口',!!trigger(),false);
+    record('选中浮窗译文保留阅读结果',translated(),'上下文跨越内联节点。');
+
+    await reset();const paragraphsText=await select('paragraphs');await clickTrigger();
+    record('跨段落选区不遗漏文字',requests[0]?.text,paragraphsText);
+    requests[0]?.resolve('第一段。\n第二段。');await wait(50);
+    record('多行中文译文按原样显示',translated(),'第一段。\n第二段。');
+    record('多行译文保留换行样式',getComputedStyle(popup().querySelector('.translated-text')).whiteSpace,'pre-wrap');
+
+    await reset();await select('english');await clickTrigger();
+    const longTranslation=Array.from({length:80},(_,index)=>`第${index+1}行中文译文，用于确认长段内容可以完整阅读。`).join('\n');
+    requests[0]?.resolve(longTranslation);await wait(80);
+    const scrollable=popup()?.querySelector('.translated-text');
+    record('长中文译文没有截断文本',translated(),longTranslation);
+    record('长译文使用内部滚动',scrollable.scrollHeight>scrollable.clientHeight,true);
+    record('长译文浮窗在视口边界内',inViewport(popup()),true);
+    record('长译文复制和关闭仍在视口内',inViewport(popup()?.querySelector('.action-copy'))&&inViewport(popup()?.querySelector('.header-close')),true);
+    scrollable.scrollTop=scrollable.scrollHeight;scrollable.dispatchEvent(new Event('scroll'));await wait(35);
+    record('内部滚动不会关闭阅读结果',translated(),longTranslation);
+    popup()?.querySelector('.action-copy')?.click();await wait(20);
+    record('长译文复制包含所有行',window.testCopiedText,longTranslation);
+    record('长译文没有读写写作位置',window.positionMessages.length,positionReadsBefore);
+
+    await reset();
+    const wrapped=document.createElement('p');wrapped.id='wrapped-trigger-selection';
+    wrapped.style.cssText='position:fixed;left:16px;top:120px;width:280px;margin:0;font:16px/24px system-ui,sans-serif';
+    wrapped.innerHTML='A deliberately longer opening line.<br>Finish this passage.';document.body.appendChild(wrapped);
+    await select(wrapped.id);
+    const wrappedRange=getSelection().getRangeAt(0),lines=Array.from(wrappedRange.getClientRects()).filter(line=>line.width>0&&line.height>0);
+    const endLine=lines[lines.length-1],wrappedButton=triggerButton().getBoundingClientRect();
+    record('多行定位用例具有不同长度的末行',wrappedRange.getBoundingClientRect().right-endLine.right>20,true);
+    record('多行入口对齐选区末行右端',Math.abs(wrappedButton.right-endLine.right)<1,true);
+    record('多行入口与正文保留 6px 间距',Math.abs(wrappedButton.top-endLine.bottom-6)<1,true);
+    record('多行入口保持视口 8px 安全边',wrappedButton.left>=8&&wrappedButton.right<=innerWidth-8,true);
+    await clearSelection();wrapped.remove();
+
+    await reset();await select('bottom');
+    record('靠近视口底部入口完整可见',inViewport(trigger()),true);
+    const bottomLines=Array.from(getSelection().getRangeAt(0).getClientRects()).filter(line=>line.width>0&&line.height>0);
+    record('底部不足时入口位于末行上方',triggerButton().getBoundingClientRect().bottom<=bottomLines[bottomLines.length-1].top-6+.5,true);
+    const bottomTrigger=triggerButton().getBoundingClientRect();
+    record('窄屏底部入口保留真实宽度与 8px 边距',bottomTrigger.left>=8&&bottomTrigger.right<=innerWidth-8+.5,true);
+    await clickTrigger();requests[0]?.resolve('靠近底部的阅读预览。');await wait(100);
+    record('靠近视口底部浮窗完整可见',inViewport(popup()),true);
+    record('窄屏或底部复制按钮可见',inViewport(popup()?.querySelector('.action-copy')),true);
+    const box=popup()?.getBoundingClientRect();window.readingLayout={width:innerWidth,height:innerHeight,popup:box?.toJSON()};
+
+    await reset();const beforeReload=await select('english');await clickTrigger();window.delayState=true;
+    await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');script.src='../dist-local/content/content.js';
+      script.onload=()=>{script.remove();resolve();};script.onerror=()=>reject(new Error('重注入内容脚本失败'));document.body.appendChild(script);
+    });
+    await wait(35);
+    record('新实例的初始状态读取被受控延迟',stateWaiters.length>0,true);
+    message('READING_STATE_CHANGED',{enabled:false});
+    message('EXTENSION_STATE_CHANGED',{enabled:false});
+    window.delayState=false;stateWaiters.splice(0).forEach(resolve=>resolve({enabled:true,readingEnabled:true}));
+    await wait(80);
+    record('内容脚本重注入移除旧阅读入口和加载',!!trigger()||!!popup(),false);
+    record('内容脚本重注入保留正文选区',getSelection().toString(),beforeReload);
+    requests[0]?.resolve('退休实例不应显示的译文。');await wait(70);
+    record('退休阅读实例的迟到结果不复活',!!popup(),false);
+    await select('other');record('迟到初始读取不能覆盖更新的划词关闭状态',!!trigger(),false);
+    draft.focus();draft.value='迟到的初始写作开启状态应被忽略。';draft.setSelectionRange(draft.value.length,draft.value.length);
+    draft.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(360);
+    record('迟到初始读取不能覆盖更新的输入关闭状态',requests.length,1);
+    draft.value='';draft.blur();
+    message('READING_STATE_CHANGED',{enabled:true});await select('other');await clickTrigger();
+    record('重注入后新实例只发送一个阅读请求',requests.length,2);
+    requests[1]?.resolve('重注入后的新阅读结果。');await wait(60);
+    record('重注入后新实例仍可正常阅读',translated(),'重注入后的新阅读结果。');
+
+    await reset();draft.focus();draft.value='保留原有输入翻译。';draft.setSelectionRange(draft.value.length,draft.value.length);
+    draft.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(360);
+    record('中文输入仍按原行为自动请求',requests.length,1);
+    record('原有输入默认目标仍为英文',requests[0]?.targetLang,'en');
+    requests[0]?.resolve('Keep the existing writing translation.');await wait(70);
+    record('原有输入仍提供替换按钮',!!popup()?.querySelector('.action-replace'),true);
+    record('原有输入仍由有效译文拦截 Tab',tab(draft),true);
+    record('原有 Tab 替换保留完整内容',draft.value,'Keep the existing writing translation.');
+
+    await reset();let unexpectedNativeCreates=0;
+    Object.defineProperty(window,'Translator',{configurable:true,value:{
+      async availability(){return 'unavailable';},async create(){unexpectedNativeCreates++;throw new Error('不可用时不应创建本机实例');}
+    }});
+    message('TRANSLATION_CONFIG_CHANGED',{config:{provider:'browser',revision:'selection-unavailable-native'}});
+    await select('english');await clickTrigger();await wait(70);
+    record('本机语言对不可用时没有远程请求',requests.length,0);
+    record('本机不可用时没有调用模型创建',unexpectedNativeCreates,0);
+    record('本机不可用显示准备英译中按钮',!!popup()?.querySelector('.action-prepare'),true);
+    record('错误状态没有可由宿主导航的扩展链接',!!popup()?.querySelector('a[href^="chrome-extension:"]'),false);
+    popup()?.querySelector('.action-prepare')?.click();await wait(25);
+    record('准备按钮仅发送固定后台消息',JSON.stringify(window.preparationMessages[0]),JSON.stringify({type:'OPEN_READING_PREPARATION'}));
+    record('准备页请求成功后按钮可继续使用',popup()?.querySelector('.action-prepare')?.disabled,false);
+    window.testPreparationFailure=true;popup()?.querySelector('.action-prepare')?.click();await wait(25);
+    record('准备页后台打开失败提供明确反馈',popup()?.querySelector('.preview-text')?.textContent?.includes('准备页未能打开'),true);
+    record('准备页打开失败保留可用重试按钮',popup()?.querySelector('.action-prepare')?.disabled,false);
+    window.testPreparationFailure=false;popup()?.querySelector('.action-prepare')?.click();await wait(25);
+    record('准备页打开失败后可再次请求后台',window.preparationMessages.length,3);
+    record('准备入口不改正文',document.getElementById('english').textContent,original);
+
+    await reset();Object.defineProperty(window,'Translator',{configurable:true,value:undefined});
+    message('TRANSLATION_CONFIG_CHANGED',{config:{provider:'browser',revision:'selection-missing-native'}});
+    await select('other');await clickTrigger();await wait(70);
+    record('页面缺少 Translator 时仍提供准备按钮',!!popup()?.querySelector('.action-prepare'),true);
+    record('页面缺少 Translator 时不提供扩展直链',!!popup()?.querySelector('a[href^="chrome-extension:"]'),false);
+    popup()?.querySelector('.action-prepare')?.click();await wait(25);
+    record('缺少 Translator 时通过相同固定消息准备',JSON.stringify(window.preparationMessages[0]),JSON.stringify({type:'OPEN_READING_PREPARATION'}));
+    await reset();record('没有浏览器异常',testErrors.length,0);
+  } catch(error) { testErrors.push(String(error?.stack||error)); }
+  window.showPageSelectionPreview = async (stage='result') => {
+    await reset();await select('bottom');
+    if(stage==='result'){await clickTrigger();requests[0]?.resolve('这段英文位于页面底部，译文仍能在当前位置完整阅读。');await wait(150);}
+  };
+  document.getElementById('results').textContent=JSON.stringify({results:testResults,errors:testErrors},null,2);
+  window.testsFinished=true;
+});
+</script>
+</html>

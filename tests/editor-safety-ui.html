@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 编辑器原文保护回归</title>
+<style>body{font:16px sans-serif;margin:32px}input,textarea,[contenteditable]{display:block;width:600px;min-height:45px;border:1px solid #999;margin:12px}pre{white-space:pre-wrap}</style>
+<h1>编辑器替换与原文保护</h1>
+<p>实际内容脚本与 Chrome 原生编辑事务；翻译和剪贴板使用明确替身。</p>
+<div id="editors"></div><pre id="results">等待测试…</pre>
+<script>
+window.testResults=[];window.testErrors=[];window.copied=[];
+window.translationRequests=0;
+window.delayOffset=false;window.offsetWaiters=[];
+const listeners=[];
+window.chrome={runtime:{onMessage:{addListener(fn){listeners.push(fn)}},async sendMessage(message){
+ if(message.type==='GET_EXTENSION_STATE')return {enabled:true};
+ if(message.type==='GET_TRANSLATION_CONFIG')return {success:true,config:{provider:'volcengine',revision:'safety'}};
+ if(message.type==='GET_POPUP_OFFSET')return delayOffset?new Promise(resolve=>offsetWaiters.push(resolve)):{success:true,offset:null};
+ if(message.type==='SET_POPUP_OFFSET'||message.type==='CLEAR_POPUP_OFFSET')return {success:true};
+ if(message.type==='TRANSLATE_REMOTE')translationRequests++;
+ return {success:true,data:{translatedText:'Safe.'}};
+}}};
+Object.defineProperty(navigator,'clipboard',{configurable:true,value:{async writeText(text){copied.push(text)}}});
+addEventListener('error',event=>testErrors.push(event.message));
+addEventListener('unhandledrejection',event=>testErrors.push(String(event.reason)));
+</script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+addEventListener('load',async()=>{
+ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ const record=(name,actual,expected)=>testResults.push({name,actual,expected,passed:actual===expected});
+ const read=e=>'value'in e?e.value:e.textContent;
+ const popup=()=>document.querySelector('.live-translate-enhanced-popup');
+ const tab=e=>{const event=new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true});e.dispatchEvent(event);return event.defaultPrevented};
+ let next=0;
+ const make=async(kind='rich',lexical=false)=>{
+  document.querySelector('.header-close')?.click();
+  const e=document.createElement(kind==='rich'?'div':kind);e.id='case-'+(++next);
+  if(kind==='rich')e.contentEditable='true';
+  if(lexical)e.dataset.lexicalEditor='true';
+  document.getElementById('editors').append(e);await wait(20);
+  const original='前文🙂。待翻译'+next+'。后续草稿';
+  if('value'in e)e.value=original;else e.textContent=original;
+  e.focus();
+  const offset=original.indexOf('后续');
+  if('setSelectionRange'in e)e.setSelectionRange(offset,offset);
+  else{const range=document.createRange();range.setStart(e.firstChild,offset);range.collapse(true);getSelection().removeAllRanges();getSelection().addRange(range)}
+  e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:'。'}));
+  await wait(360);
+  return {e,original,expected:'前文🙂。Safe.后续草稿'};
+ };
+ try{
+  await wait(30);
+  for(const kind of ['input','textarea','rich']){
+   const {e,expected}=await make(kind);record(kind+' 有效译文可替换',tab(e),true);
+   record(kind+' 替换范围精确',read(e),expected);
+   document.execCommand('insertText',false,'x');await wait(180);
+   record(kind+' 继续输入不会被延迟校验改写',read(e),'前文🙂。Safe.x后续草稿');
+  }
+
+  const lexical=await make('rich',true);let lexicalInputs=0;
+  lexical.e.addEventListener('input',()=>{lexicalInputs++;lexical.e.textContent=''});
+  record('Lexical 保留翻译结果和明确复制提示',popup()?.textContent.includes('暂不直接替换'),true);
+  record('Lexical 不提供危险替换按钮',!!document.querySelector('.action-replace'),false);
+  record('Lexical 无有效替换时放行 Tab',tab(lexical.e),false);
+  record('Lexical 未执行任何编辑事务',lexicalInputs,0);
+  record('Lexical 原始草稿未变',read(lexical.e),lexical.original);
+  document.querySelector('.action-copy')?.click();await wait(5);record('Lexical 可复制译文',copied.at(-1),'Safe.');
+
+  const sync=await make();let syncInputs=0;
+  sync.e.addEventListener('input',()=>{syncInputs++;sync.e.textContent=''});
+  record('同步拒绝替换时放行 Tab',tab(sync.e),false);
+  record('同步拒绝保留完整原草稿',read(sync.e),sync.original);
+  record('同步失败只尝试一次原生事务',syncInputs,1);
+  record('同步失败说明复制退路',popup()?.textContent.includes('编辑器拒绝替换'),true);
+  record('同步失败移除替换按钮',!!document.querySelector('.action-replace'),false);
+  document.querySelector('.action-copy-original')?.click();await wait(5);
+  record('同步失败可复制完整原草稿',copied.at(-1),sync.original);
+  record('同步失败下一次 Tab 不重复写入',tab(sync.e),false);
+  record('同步失败没有重复 input',syncInputs,1);
+
+  const nestedSync=await make();let nestedInputs=0;
+  nestedSync.e.addEventListener('input',()=>{
+   nestedInputs++;if(nestedInputs!==1)return;
+   nestedSync.e.textContent='';
+   nestedSync.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));
+  });
+  record('同步嵌套 input 拒绝时放行 Tab',tab(nestedSync.e),false);
+  record('同步嵌套 input 后完整原稿未丢失',read(nestedSync.e),nestedSync.original);
+  record('同步嵌套 input 只有一次原生事务和一次网页通知',nestedInputs,2);
+  record('同步嵌套 input 可复制完整原稿',document.querySelector('.original-text')?.textContent,nestedSync.original);
+
+  const asyncCase=await make();let asyncInputs=0;
+  asyncCase.e.addEventListener('input',()=>{asyncInputs++;setTimeout(()=>{asyncCase.e.textContent=''},10)});
+  record('异步回滚前原生事务被接受',tab(asyncCase.e),true);
+  await wait(190);
+  record('无用户操作的异步空回滚恢复完整原草稿',read(asyncCase.e),asyncCase.original);
+  record('异步恢复不派发第二次编辑事务',asyncInputs,1);
+  record('异步失败提供完整原稿备份',document.querySelector('.original-text')?.textContent,asyncCase.original);
+  record('异步失败提供复制退路',!!document.querySelector('.action-copy')&&!document.querySelector('.action-replace'),true);
+
+  const asyncInput=await make();let asyncInputEvents=0;
+  asyncInput.e.addEventListener('input',()=>{
+   asyncInputEvents++;if(asyncInputEvents!==1)return;
+   setTimeout(()=>{
+    asyncInput.e.textContent='';
+    asyncInput.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));
+   },10);
+  });
+  record('带 input 的异步回滚前事务被接受',tab(asyncInput.e),true);await wait(190);
+  record('带 input 的异步回滚取消自动写回',read(asyncInput.e),'');
+  record('带 input 的异步回滚保留完整原稿备份',document.querySelector('.original-text')?.textContent,asyncInput.original);
+  record('带 input 的异步回滚提供明确失败反馈',popup()?.textContent.includes('已停止写入'),true);
+  record('带 input 的异步回滚不派发第三次 input',asyncInputEvents,2);
+  document.querySelector('.action-copy-original')?.click();await wait(5);
+  record('带 input 的异步回滚可复制完整原稿',copied.at(-1),asyncInput.original);
+  record('带 input 的异步回滚不提供重复替换',!!document.querySelector('.action-replace'),false);
+
+  const rolledBack=await make();let rollbackInputs=0;
+  rolledBack.e.addEventListener('input',()=>{rollbackInputs++;setTimeout(()=>{rolledBack.e.textContent=rolledBack.original},10)});
+  tab(rolledBack.e);await wait(190);
+  record('回滚到原文时保留原文',read(rolledBack.e),rolledBack.original);
+  record('回滚到原文不重新尝试译文事务',rollbackInputs,1);
+  record('回滚到原文明确提供复制退路',popup()?.textContent.includes('编辑器拒绝替换'),true);
+
+  const clear=await make();tab(clear.e);
+  const clearRange=document.createRange();clearRange.selectNodeContents(clear.e);getSelection().removeAllRanges();getSelection().addRange(clearRange);
+  document.execCommand('delete');await wait(190);
+  record('真实编辑事务主动清空后保持空白',read(clear.e),'');
+  record('主动清空不复活旧浮窗',!!popup(),false);
+
+  const undo=await make();tab(undo.e);document.execCommand('undo');await wait(190);
+  record('用户撤销保留原文且不自动重试译文',read(undo.e),undo.original);
+  record('用户撤销不复活旧备份浮窗',!!popup(),false);
+
+  const keyClear=await make();tab(keyClear.e);
+  keyClear.e.dispatchEvent(new KeyboardEvent('keydown',{key:'Backspace',bubbles:true,cancelable:true}));keyClear.e.textContent='';await wait(190);
+  record('先收到清空按键而未收到 input 也不写回旧草稿',read(keyClear.e),'');
+  record('清空按键取消备份浮窗',!!popup(),false);
+
+  const beforeClear=await make();tab(beforeClear.e);
+  beforeClear.e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,inputType:'deleteContentBackward'}));beforeClear.e.textContent='';await wait(190);
+  record('beforeinput 后的清空不能被恢复覆盖',read(beforeClear.e),'');
+  record('beforeinput 取消备份浮窗',!!popup(),false);
+
+  const inputClear=await make();tab(inputClear.e);inputClear.e.textContent='';
+  inputClear.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));await wait(190);
+  record('仅收到 input 的主动清空不能被恢复覆盖',read(inputClear.e),'');
+
+  const buttonClear=await make();tab(buttonClear.e);
+  const clearButton=document.createElement('button');clearButton.textContent='网页清空草稿';document.body.append(clearButton);
+  clearButton.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));buttonClear.e.textContent='';await wait(190);
+  record('网页清空按钮保留编辑器焦点也不会恢复旧稿',read(buttonClear.e),'');clearButton.remove();
+  record('网页指针清空取消备份浮窗',!!popup(),false);
+
+  const imeClear=await make();tab(imeClear.e);
+  imeClear.e.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));imeClear.e.textContent='';
+  imeClear.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertCompositionText',isComposing:true}));await wait(190);
+  record('IME 用户意图保持后续空稿',read(imeClear.e),'');
+  record('IME 用户意图不复活备份浮窗',!!popup(),false);
+  imeClear.e.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}));
+
+  const serviceChange=await make();tab(serviceChange.e);serviceChange.e.textContent='';
+  serviceChange.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));
+  listeners.forEach(fn=>fn({type:'TRANSLATION_CONFIG_CHANGED',config:{provider:'volcengine',revision:'changed-after-replacement'}},{},()=>{}));
+  await wait(190);
+  record('切换服务取消旧替换的备份浮窗',!!popup(),false);
+  record('切换服务后不写回旧草稿',read(serviceChange.e),'');
+
+  const disabled=await make();tab(disabled.e);disabled.e.textContent='';
+  disabled.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));
+  listeners.forEach(fn=>fn({type:'EXTENSION_STATE_CHANGED',enabled:false},{},()=>{}));
+  listeners.forEach(fn=>fn({type:'EXTENSION_STATE_CHANGED',enabled:true},{},()=>{}));await wait(190);
+  record('停用再启用不复活旧备份浮窗',!!popup(),false);
+  record('停用再启用不恢复旧稿',read(disabled.e),'');
+
+  const switched=await make();tab(switched.e);switched.e.textContent='';
+  switched.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));
+  const other=document.createElement('textarea');document.getElementById('editors').append(other);other.focus();await wait(190);
+  record('切换编辑器不复活旧备份浮窗',!!popup(),false);
+  record('切换编辑器不抢回焦点',document.activeElement===other,true);
+
+  const delayedBackup=await make();tab(delayedBackup.e);delayOffset=true;delayedBackup.e.textContent='';
+  delayedBackup.e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));await wait(170);
+  record('原稿备份等待异步位置读取时尚未挂载',!!popup(),false);
+  delayedBackup.e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,inputType:'insertText',data:'x'}));
+  delayOffset=false;offsetWaiters.splice(0).forEach(resolve=>resolve({success:true,offset:null}));await wait(30);
+  record('备份异步创建期间后续输入意图使挂载失效',!!popup(),false);
+  record('备份异步创建取消后未改写草稿',read(delayedBackup.e),'');
+
+  const changed=await make();tab(changed.e);changed.e.textContent='页面自己的新内容';await wait(190);
+  record('异步出现其他非空内容不覆盖',read(changed.e),'页面自己的新内容');
+  record('无法恢复时仍保留完整原草稿副本',document.querySelector('.original-text')?.textContent,changed.original);
+
+  const refused=await make();const originalCommand=document.execCommand;let attempts=0;
+  document.execCommand=function(){attempts++;return false};
+  record('浏览器拒绝原生事务时放行 Tab',tab(refused.e),false);
+  document.execCommand=originalCommand;
+  record('拒绝后不叠加 Range 或其他命令',attempts,1);
+  record('拒绝后完整原文未变',read(refused.e),refused.original);
+
+  const protectedExisting=document.createElement('textarea');protectedExisting.value='停用期间的既有草稿。';
+  document.getElementById('editors').append(protectedExisting);await wait(20);
+  listeners.forEach(fn=>fn({type:'EXTENSION_STATE_CHANGED',enabled:false},{},()=>{}));
+  let disabledReads=0;
+  const nativeValue=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');
+  const protectValue=e=>Object.defineProperty(e,'value',{
+   configurable:true,get(){disabledReads++;return nativeValue.get.call(this)},set(value){nativeValue.set.call(this,value)}
+  });
+  protectValue(protectedExisting);
+  const protectedDynamic=document.createElement('textarea');protectedDynamic.value='停用期间新增草稿。';protectValue(protectedDynamic);
+  document.getElementById('editors').append(protectedDynamic);await wait(20);
+  const disabledRequests=translationRequests;
+  protectedExisting.focus();protectedDynamic.focus();protectedExisting.focus();
+  record('停用后焦点切换不读取草稿或重建编辑器状态',disabledReads,0);
+  protectedExisting.dispatchEvent(new KeyboardEvent('keydown',{key:'x',bubbles:true,cancelable:true}));
+  record('停用后普通按键不读取草稿',disabledReads,0);
+  record('停用后 Tab 保留网页默认行为',tab(protectedExisting),false);
+  record('停用后 Tab 不读取草稿',disabledReads,0);
+  protectedExisting.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+  protectedDynamic.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+  record('停用后指针事件不读取草稿',disabledReads,0);
+  protectedDynamic.focus();protectedDynamic.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:'。'}));
+  protectedDynamic.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+  protectedDynamic.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}));await wait(360);
+  record('停用后动态节点输入和 IME 不读取草稿',disabledReads,0);
+  record('停用后全部事件不发翻译请求',translationRequests-disabledRequests,0);
+  record('停用后不显示浮窗',!!popup(),false);
+  listeners.forEach(fn=>fn({type:'EXTENSION_STATE_CHANGED',enabled:true},{},()=>{}));
+  record('重新启用后正常读取并初始化编辑器',disabledReads>0,true);
+  const resumedText='重新启用后的完整测试句。';protectedDynamic.value=resumedText;
+  protectedDynamic.focus();protectedDynamic.setSelectionRange(resumedText.length,resumedText.length);
+  protectedDynamic.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:'。'}));await wait(360);
+  record('重新启用后动态节点正常翻译',document.querySelector('.original-text')?.textContent,resumedText);
+  record('重新启用后正常接受 Tab 替换',tab(protectedDynamic),true);
+  record('重新启用后正常写入译文',protectedDynamic.value,'Safe.');
+  record('无浏览器异常',testErrors.length,0);
+ }catch(error){testErrors.push(String(error))}
+ document.getElementById('results').textContent=JSON.stringify({results:testResults,errors:testErrors},null,2);window.testsFinished=true;
+});
+</script>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 动态输入框回归</title>
+<style>body{font:16px sans-serif;margin:32px}textarea,[contenteditable]{display:block;min-height:40px;width:500px;margin:12px 0;border:1px solid #888}pre{white-space:pre-wrap}</style>
+<h1>动态输入框回归</h1>
+<p>先运行 npm run build:local，再用浏览器打开本文件。使用实际内容脚本；翻译响应为测试替身，不调用火山 API。</p>
+<textarea id="initial" aria-label="初始输入框"></textarea>
+<div id="mount"></div>
+<pre id="results">等待测试…</pre>
+<script>
+// 仅本测试页提供 Chrome 接口替身，以隔离输入监听行为。
+window.testTranslationCalls = [];
+window.chrome = window.chrome || {};
+chrome.runtime = {
+  onMessage: { addListener() {} },
+  sendMessage(message) {
+    if (message.type === 'GET_POPUP_OFFSET') return chrome.storage.local.get('liveTranslatePopupOffset').then(value => ({success:true,offset:value.liveTranslatePopupOffset || null}));
+    if (message.type === 'SET_POPUP_OFFSET' || message.type === 'CLEAR_POPUP_OFFSET') return Promise.resolve({success:true});
+    if (message.type === 'GET_TRANSLATION_CONFIG') return Promise.resolve({success:true,config:{provider:'volcengine',revision:'initial'}});
+    if (message.type === 'GET_EXTENSION_STATE') return Promise.resolve({ enabled: true });
+    return new Promise(callback => {
+    const request = message.request;
+    window.testTranslationCalls.push(request.text);
+    callback({ success: true, data: { translatedText: 'Fixture translation.', detectedSourceLanguage: 'zh' } });
+    });
+  }
+};
+chrome.storage = { local: { async get() { return {}; }, async set() {}, async remove() {} } };
+</script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+window.testResults = [];
+window.addEventListener('load', async () => {
+  const settle = () => new Promise(resolve => setTimeout(resolve, 360));
+  const mount = document.getElementById('mount');
+  async function check(name, element, sentence) {
+    await settle();
+    const before = window.testTranslationCalls.length;
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) element.value = sentence;
+    else element.textContent = sentence;
+    element.focus();
+    if ('setSelectionRange' in element) element.setSelectionRange(sentence.length, sentence.length);
+    else { const r = document.createRange(); r.selectNodeContents(element); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r); }
+    element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: sentence }));
+    await settle();
+    const passed = window.testTranslationCalls.length === before + 1 &&
+      document.querySelector('.live-translate-enhanced-popup')?.textContent.includes('Fixture translation.');
+    window.testResults.push({ name, passed });
+    document.querySelector('.live-translate-enhanced-popup button')?.click();
+  }
+  await check('初始 textarea', document.getElementById('initial'), '初始输入框测试。');
+
+  const direct = document.createElement('div');
+  direct.contentEditable = 'true';
+  mount.append(direct);
+  await check('直接新增 contenteditable 根节点', direct, '动态编辑器测试。');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  mount.append(input);
+  await check('直接新增 input 根节点', input, '动态原生输入框测试。');
+
+  const wrapper = document.createElement('section');
+  const nested = document.createElement('div');
+  nested.contentEditable = 'true';
+  wrapper.append(nested);
+  mount.append(wrapper);
+  await check('新增容器中的嵌套编辑器', nested, '嵌套编辑器测试。');
+
+  const delayed = document.createElement('div');
+  mount.append(delayed);
+  await settle();
+  delayed.contentEditable = 'true';
+  await check('挂载后才启用 contenteditable', delayed, '延迟启用编辑器测试。');
+
+  document.getElementById('results').textContent = JSON.stringify(window.testResults, null, 2);
+  window.testsFinished = true;
+});
+</script>
+</html>

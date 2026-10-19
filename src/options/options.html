@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>翻译服务设置 · LiveTranslate</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --page: #edf0f5; --paper: #fff; --ink: #18253d; --muted: #59677d;
+      --line: #dce2ec; --field-line: #8393ad; --accent: #3158bd; --on-accent: #fff;
+      --tint: #edf2ff; --inset: #f5f7fa; --hover: #e6edfc; --accent-hover: #2549a8;
+      --danger: #a63746; --danger-tint: #fff0f2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); font-size: 15px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    a:hover { text-decoration-thickness: 2px; }
+    a, button, input, select, summary { -webkit-tap-highlight-color: transparent; }
+    a, button, summary { touch-action: manipulation; }
+    :where(a, button, input, select, summary):focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .page { width: min(1040px, 100%); margin: 0 auto; padding: 28px 32px 48px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); font-size: 19px; font-weight: 650; letter-spacing: -.5px; line-height: 1.3; white-space: nowrap; }
+    .brand svg { display: block; flex: none; width: 36px; height: 36px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--tint); color: var(--accent); }
+    .topbar a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
+    .intro { max-width: 720px; margin: 36px 0 28px; }
+    h1 { margin: 0 0 11px; font-size: clamp(25px, 3.4vw, 30px); line-height: 1.35; letter-spacing: -.7px; font-weight: 600; text-wrap: balance; }
+    h2 { margin: 0 0 12px; font-size: 17px; line-height: 1.5; letter-spacing: -.2px; font-weight: 600; }
+    p { margin: 12px 0; overflow-wrap: anywhere; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 32px; align-items: start; }
+    button { max-width: 100%; min-height: 44px; padding: 11px 17px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; font-size: 14px; font-weight: 550; line-height: 1.5; cursor: pointer; transition: background-color 150ms, border-color 150ms, transform 120ms; }
+    button:hover:not(:disabled) { border-color: var(--field-line); background: var(--inset); }
+    button:active:not(:disabled) { transform: translateY(1px); background: var(--hover); }
+    button:disabled { opacity: .48; cursor: default; }
+    .margin-note { padding-top: 24px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    .margin-note h2 { margin-bottom: 9px; color: var(--ink); font-size: 14px; font-weight: 600; }
+    [hidden] { display: none !important; }
+
+    .intro p { margin: 0; color: var(--muted); font-size: 15px; }
+    .settings-paper { min-width: 0; padding: 30px 32px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .field-label { display: block; margin: 0; font-size: 14px; font-weight: 600; }
+    label { display: block; margin-top: 23px; font-size: 13px; font-weight: 550; }
+    input, select { display: block; width: 100%; min-width: 0; max-width: 100%; min-height: 47px; margin-top: 9px; padding: 11px 12px; border: 1px solid var(--field-line); border-radius: 7px; background: var(--paper); color: var(--ink); font: inherit; font-size: 14px; line-height: 1.5; transition: border-color 150ms, background-color 150ms; }
+    select { cursor: pointer; }
+    input:hover:not(:disabled), select:hover:not(:disabled) { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); opacity: .85; }
+    input:disabled, select:disabled { opacity: .55; cursor: default; }
+    small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+    .service-info { margin-top: 23px; padding-top: 23px; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.8; }
+    .service-info > p:first-child { margin-top: 0; }
+    #local-info { display: flex; align-items: flex-start; gap: 13px; padding: 18px; border: 1px solid var(--line); border-radius: 9px; background: var(--inset); }
+    #local-info svg { display: block; flex: 0 0 21px; width: 21px; height: 21px; margin-top: 3px; color: var(--accent); }
+    #local-info p { margin: 0 0 9px; color: var(--muted); }
+    #local-info a { font-size: 13px; }
+    #direct-info > p:first-child, #remote-info > p:first-child { color: var(--muted); }
+    .credential-note { margin-top: 15px; padding: 10px 12px; border-left: 2px solid var(--line); border-radius: 0 6px 6px 0; background: var(--inset); }
+    .service-details { margin-top: 15px; border-top: 1px solid var(--line); font-size: 13px; }
+    summary { min-height: 44px; padding: 10px 0; color: var(--muted); font-size: 13px; font-weight: 550; line-height: 1.8; cursor: pointer; }
+    summary:hover { color: var(--accent); }
+    details[open] > summary { color: var(--ink); }
+    .service-details p { margin: 8px 0 12px; }
+    .service-details small { margin: 8px 0 12px; }
+    .clear-note { margin-top: 6px; }
+    .help-links { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; }
+    .clear-action { margin-top: 12px; min-height: 44px; padding: 10px 12px; color: var(--danger); border-color: var(--line); font-size: 12px; }
+    .clear-action:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); background: var(--danger-tint); }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 11px; margin-top: 27px; padding-top: 23px; border-top: 1px solid var(--line); }
+    #save { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+    #save:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    #save:active:not(:disabled) { background: var(--accent-hover); }
+    #status { min-height: 2em; margin: 21px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 2px solid var(--accent); border-radius: 0 7px 7px 0; background: var(--inset); color: var(--muted); white-space: pre-wrap; font-size: 13px; line-height: 1.8; }
+    #status[data-error=true] { color: var(--danger); border-color: var(--danger); background: var(--danger-tint); }
+    .margin-note p { margin: 0 0 20px; }
+    .margin-note .note-divider { padding-top: 20px; border-top: 1px solid var(--line); }
+    .margin-note svg { display: block; width: 22px; height: 22px; margin-bottom: 13px; color: var(--accent); }
+    #legacy-credentials { margin-bottom: 25px; padding: 19px; border: 1px solid var(--danger); border-left-width: 3px; border-radius: 0 8px 8px 0; background: var(--danger-tint); }
+    #legacy-credentials h2 { font-size: 16px; }
+    #legacy-credentials p { font-size: 13px; line-height: 1.8; }
+    .legacy-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .legacy-actions button { font-size: 12px; }
+
+
+
+    @media (max-width: 760px) {
+      .page { padding: 23px 20px 32px; }
+      .intro { margin: 27px 0 23px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      .settings-paper { padding: 25px; }
+      .margin-note { padding: 0 6px; }
+    }
+    @media (max-width: 420px) {
+      .page { padding: 18px 16px 30px; }
+      .topbar { gap: 12px; padding-bottom: 16px; }
+      .brand { gap: 9px; font-size: 17px; }
+      .brand svg { width: 34px; height: 34px; border-radius: 9px; }
+      .topbar a { font-size: 12px; }
+      .intro { margin-top: 25px; }
+      .intro p, input, select { font-size: 16px; }
+      .settings-paper { padding: 21px 19px; }
+      .actions { align-items: stretch; gap: 10px; }
+      .actions button, .legacy-actions button { width: 100%; }
+      #local-info { padding: 15px 13px; gap: 10px; font-size: 13px; }
+      #local-info svg { flex-basis: 19px; width: 19px; height: 19px; }
+      #legacy-credentials { padding: 15px 13px; }
+      .credential-note { padding: 11px 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+<main class="page">
+  <div class="topbar">
+    <div class="brand"><svg data-brand-mark viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M12 9h31c7.73 0 14 6.27 14 14v1H40c-6.63 0-12 3.63-12 9H17v-8a5 5 0 0 0-5-5H7v-6a5 5 0 0 1 5-5Z"/><path d="M36 32h11v7a5 5 0 0 0 5 5h5v6a5 5 0 0 1-5 5H21c-7.73 0-14-6.27-14-14v-1h17c6.63 0 12-2.63 12-8Z"/></svg>LiveTranslate</div>
+    <a href="../help/user-guide.html" target="_blank" rel="noopener noreferrer">使用说明</a>
+  </div>
+  <header class="intro">
+    <h1>选择适合你的翻译方式</h1>
+    <p>在这台电脑上翻译，或连接自己的翻译服务。</p>
+  </header>
+  <div class="workspace">
+    <div class="settings-paper">
+      <section id="legacy-credentials" hidden aria-label="旧版凭据处理">
+        <h2>请处理旧版已保存凭据</h2>
+        <p>检测到旧版在本机磁盘保存的密钥或令牌。为保护凭据，处理前不会发送远程翻译请求。服务选择和地址会保留，本机翻译可以继续使用。</p>
+        <p>迁移会将旧凭据移入本次浏览器会话内存，并从扩展本机存储删除；若已选择远程服务，将恢复向该服务自动发送完整中文句。下次重启、重载或更新后需重新填写。清除则删除旧凭据，需要时再填。</p>
+        <div class="legacy-actions">
+          <button id="migrate-credentials" type="button">移入本次会话并删除旧保存</button>
+          <button id="clear-legacy-credentials" type="button">清除旧凭据</button>
+        </div>
+      </section>
+      <form id="settings">
+        <label class="field-label" for="provider">翻译服务</label>
+        <select id="provider" disabled>
+          <option value="browser">Chrome 本机翻译（默认，无云翻译调用费）</option>
+          <option value="volcengine-direct">火山引擎（自带 AK/SK 直连）</option>
+          <option id="legacy-proxy" value="volcengine" hidden>火山代理（保留的旧版配置）</option>
+          <option value="custom">自定义兼容翻译服务</option>
+        </select>
+        <div id="local-info" class="service-info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M8 10l3 3 5-5"/></svg>
+          <div><p>首次下载中英语言包后，草稿在本机翻译。需要支持 Translator 的桌面 Chrome。</p><a href="../setup/setup.html" target="_blank" rel="noopener noreferrer">准备 / 验证本机语言包</a></div>
+        </div>
+        <div id="direct-info" class="service-info" hidden>
+          <p>保存后，完整中文句会自动发送给火山；手动翻译会发送选区或整个草稿。调用费用按你的火山账号额度计算。</p>
+          <label for="access-key">Access Key ID（AK）</label>
+          <input id="access-key" type="password" maxlength="256" autocomplete="off" spellcheck="false" placeholder="填写你自己的 Access Key ID" aria-describedby="direct-credential-note">
+          <label for="secret-key">Secret Access Key（SK）</label>
+          <input id="secret-key" type="password" maxlength="256" autocomplete="off" spellcheck="false" placeholder="填写对应的 Secret Access Key" aria-describedby="direct-credential-note">
+          <small id="direct-credential-note" class="credential-note">密钥仅用于本次浏览器会话；浏览器重启、扩展重载、停用或更新后需重新填写。</small>
+          <details id="direct-help" class="service-details">
+            <summary>获取密钥与凭据保护说明</summary>
+            <p class="help-links"><a href="https://console.volcengine.com/iam/keymanage/" target="_blank" rel="noopener noreferrer">获取火山 AK/SK（需登录）</a><a href="../help/user-guide.html#volcengine" target="_blank" rel="noopener noreferrer">开通和配置说明</a></p>
+            <p>进入“API 访问密钥”后选择 Access Key，创建并复制 AK、SK；请勿选择 API Key。登录后若未回到密钥页，可从右上角头像菜单进入“API 访问密钥”。</p>
+            <p>直接调用火山官方机器翻译接口，无需安装 Python 或启动代理。请使用仅有机器翻译权限的账号密钥。</p>
+            <p>AK/SK 仅保留在本次浏览器会话内存，不写入扩展磁盘存储、不随 Chrome 账号同步，网页内容脚本不能直接读取。不要共享浏览器配置；本机所有者或调试工具仍可能读取运行中的凭据。</p>
+          </details>
+          <button id="clear-keys" class="clear-action" type="button">清除本次会话的火山密钥</button>
+          <small class="clear-note">正在使用火山直连时，清除后会切回本机翻译；不会撤销火山账号中的密钥。</small>
+        </div>
+        <div id="remote-info" class="service-info" hidden>
+          <p>保存后，完整中文句会自动发送到下方地址；手动翻译会发送选区或整个草稿。请使用你信任的服务，费用、额度与数据处理方式由该服务决定。</p>
+          <label for="endpoint">翻译接口地址</label>
+          <input id="endpoint" type="url" placeholder="http://127.0.0.1:8000/api/translate" autocomplete="off" spellcheck="false" aria-describedby="endpoint-note">
+          <small id="endpoint-note">填写完整翻译地址；只填域名时自动补 /api/translate。远程地址须为 HTTPS，本机可用 HTTP。</small>
+          <label for="token">代理访问令牌（可选）</label>
+          <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="代理未启用鉴权时留空" aria-describedby="token-note">
+          <small id="token-note" class="credential-note">只填代理的 Bearer 令牌；仅不需要鉴权的接口可留空。令牌仅用于本次会话，浏览器重启、扩展重载、停用或更新后需重填；地址和服务选择保留。</small>
+          <details id="remote-help" class="service-details">
+            <summary>接入要求与令牌保护说明</summary>
+            <p id="remote-description"></p>
+            <p>代理模式的火山 AK/SK 由管理员在服务器配置，不要填入代理访问令牌。令牌仅保留在本次浏览器会话内存，不写入扩展磁盘存储、不随 Chrome 账号同步，网页内容脚本不能直接读取；本机所有者或调试工具仍可能读取运行中的凭据，请勿共享浏览器配置。</p>
+          </details>
+          <button id="clear-token" class="clear-action" type="button">清除这个服务的会话令牌</button>
+          <small class="clear-note">清除后保留服务选择；需要鉴权的服务会暂停，请重新填写令牌或切回本机翻译。</small>
+        </div>
+        <div class="actions">
+          <button id="save" type="submit" disabled>保存选择</button>
+          <button id="test" type="button" disabled hidden>测试已保存服务</button>
+        </div>
+      </form>
+      <p id="status" role="status" aria-live="polite">正在读取设置…</p>
+    </div>
+    <aside class="margin-note" aria-label="设置说明">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+      <h2>当前服务</h2>
+      <p id="session-status" role="status"></p>
+      <div class="note-divider">
+        <h2>由你决定下一步</h2>
+        <p>服务出错时不会自动切换。译文先展示，由你决定复制或替换；随时可切回本机翻译。</p>
+        <a href="../help/user-guide.html" target="_blank" rel="noopener noreferrer">完整使用说明与常见问题</a>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 内容脚本重接入回归</title>
+<style>body{font:16px sans-serif;margin:32px}textarea,[contenteditable]{width:540px;min-height:70px;border:1px solid #888}pre{white-space:pre-wrap}</style>
+<h1>不刷新页面的内容脚本重接入</h1>
+<p>执行 npm run build:local 后打开。实际构建重复执行；消息和服务响应使用可控替身。</p>
+<textarea id="input" aria-label="保留草稿">已有草稿
+不要丢失选区</textarea>
+<div id="rich" contenteditable="true"><p><strong>已有格式</strong>和中文草稿</p><p>第二行内容</p></div>
+<pre id="results">等待测试…</pre>
+<script>
+window.chrome = window.chrome || {};
+const messageListeners = new Set();
+const pendingInitial = [];
+const pendingTranslations = [];
+const pendingOffsets = [];
+let enabled = true;
+let delayInitial = false;
+let delayOffsets = false;
+let failConfig = false;
+let stateReads = 0;
+let configReads = 0;
+let apiCalls = 0;
+const initialValue = document.getElementById('input').value;
+const initialMarkup = document.getElementById('rich').innerHTML;
+const input = document.getElementById('input');
+input.focus();
+input.setSelectionRange(2, 7, 'backward');
+chrome.runtime = {
+  onMessage: {
+    addListener(listener) { messageListeners.add(listener); },
+    removeListener(listener) { messageListeners.delete(listener); }
+  },
+  sendMessage(message) {
+    if (message.type === 'GET_EXTENSION_STATE' || message.type === 'GET_TRANSLATION_CONFIG') {
+      const state = message.type === 'GET_EXTENSION_STATE';
+      if (state) stateReads++; else configReads++;
+      const value = state ? { enabled } : { success: !failConfig, config: { provider: 'volcengine', revision: 'reload-test' } };
+      return delayInitial ? new Promise(resolve => pendingInitial.push(() => resolve(value))) : Promise.resolve(value);
+    }
+    if (message.type === 'GET_POPUP_OFFSET') return delayOffsets
+      ? new Promise(resolve => pendingOffsets.push(() => resolve({ success: true, offset: null })))
+      : Promise.resolve({ success: true, offset: null });
+    if (message.type === 'SET_POPUP_OFFSET' || message.type === 'CLEAR_POPUP_OFFSET') return Promise.resolve({ success: true });
+    apiCalls++;
+    return new Promise(resolve => pendingTranslations.push(resolve));
+  }
+};
+chrome.storage = { local: { async get() { return {}; }, async set() {}, async remove() {} } };
+window.testResults = [];
+window.testErrors = [];
+window.addEventListener('error', event => testErrors.push(event.message));
+window.addEventListener('unhandledrejection', event => testErrors.push(String(event.reason)));
+</script>
+<!-- DOM 尚未完成时重复注入，也只能留下一个 DOMContentLoaded 启动回调。 -->
+<script src="../dist-local/content/content.js"></script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+window.addEventListener('load', async () => {
+  const settle = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const record = (name, actual, expected) => testResults.push({ name, actual, expected, passed: actual === expected });
+  const popupCount = () => document.querySelectorAll('.live-translate-enhanced-popup').length;
+  const send = message => new Promise(resolve => {
+    let retained = false;
+    let responded = false;
+    for (const listener of [...messageListeners]) retained = listener(message, {}, result => { responded = true; resolve(result); }) === true || retained;
+    if (!retained && !responded) resolve(undefined);
+  });
+  const inject = () => new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '../dist-local/content/content.js';
+    script.onload = () => { script.remove(); resolve(); };
+    script.onerror = () => reject(new Error('无法加载实际内容脚本构建'));
+    document.body.append(script);
+  });
+  const type = text => {
+    input.value = text;
+    input.focus();
+    input.setSelectionRange(text.length, text.length);
+    input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  };
+  const respond = () => pendingTranslations.splice(0).forEach(resolve => resolve({
+    success: true, data: { translatedText: 'Keep the draft.', detectedSourceLanguage: 'zh' }
+  }));
+  const ready = () => send({ type: 'CONTENT_READY' });
+  try {
+    record('初次握手等待初始化完成', (await ready())?.success, true);
+    record('DOM 完成前双注入只读取一次开关', stateReads, 1);
+    record('DOM 完成前双注入只读取一次服务', configReads, 1);
+    record('DOM 完成前双注入只保留一个消息监听', messageListeners.size, 1);
+    record('启动不改已有草稿', input.value, initialValue);
+    record('启动不改富文本格式', document.getElementById('rich').innerHTML, initialMarkup);
+    record('启动保留焦点', document.activeElement === input, true);
+    record('启动保留反向选区', `${input.selectionStart}:${input.selectionEnd}:${input.selectionDirection}`, '2:7:backward');
+    record('启动不翻译旧草稿', apiCalls, 0);
+
+    // 新 world 无法读取旧 world 的私有 slot，仍需通过 DOM 事件退休旧监听。
+    delete globalThis.__liveTranslateContentLifecycle;
+    await inject();
+    await ready();
+    record('模拟新 world 接入退休旧消息监听', messageListeners.size, 1);
+    record('新 world 接入不改选区', `${input.selectionStart}:${input.selectionEnd}:${input.selectionDirection}`, '2:7:backward');
+
+    delayInitial = true;
+    await inject();
+    let oldHandshake;
+    const oldReady = ready().then(result => { oldHandshake = result; });
+    await settle(20);
+    record('初始化未完成不提前确认接入', oldHandshake, undefined);
+    delayInitial = false;
+    enabled = false;
+    await inject();
+    record('暂停状态也能完成接入握手', (await ready())?.success, true);
+    pendingInitial.splice(0).forEach(resolve => resolve());
+    await oldReady;
+    record('退休实例的迟到握手返回失败', oldHandshake?.success, false);
+    const callsWhileDisabled = apiCalls;
+    type('迟到启用不能重新监听。');
+    await settle(360);
+    record('迟到初始化不能重新启用退休实例', apiCalls, callsWhileDisabled);
+    record('迟到初始化不留下第二个消息监听', messageListeners.size, 1);
+
+    enabled = true;
+    await send({ type: 'EXTENSION_STATE_CHANGED', enabled });
+    type('正在等待旧服务响应。');
+    await settle(360);
+    record('恢复后整句只发一个请求', apiCalls, callsWhileDisabled + 1);
+    const beforeReload = input.value;
+    input.setSelectionRange(1, 4, 'backward');
+    await inject();
+    await ready();
+    record('请求中重注入不改草稿', input.value, beforeReload);
+    record('请求中重注入保留焦点选区', `${document.activeElement === input}:${input.selectionStart}:${input.selectionEnd}:${input.selectionDirection}`, 'true:1:4:backward');
+    record('重注入移除旧加载浮窗', popupCount(), 0);
+    respond();
+    await settle(30);
+    record('旧请求成功不能复活浮窗', popupCount(), 0);
+    type('新实例继续自动翻译。');
+    await settle(360);
+    record('新实例继续监听且没有重复请求', apiCalls, callsWhileDisabled + 2);
+    respond();
+    await settle(30);
+    record('新实例显示当前译文', document.querySelector('.original-text')?.textContent, '新实例继续自动翻译。');
+
+    await inject();
+    await ready();
+    delayOffsets = true;
+    type('等待浮窗位置的草稿');
+    await send({ type: 'TRANSLATE_SELECTION' });
+    await settle(20);
+    await inject();
+    await ready();
+    delayOffsets = false;
+    pendingOffsets.splice(0).forEach(resolve => resolve());
+    respond();
+    await settle(40);
+    record('退休后的异步浮窗创建不能挂回页面', popupCount(), 0);
+
+    type('替换之后保持新草稿。');
+    await send({ type: 'TRANSLATE_SELECTION' });
+    respond();
+    await settle(30);
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    input.dispatchEvent(tab);
+    record('重接入后仍可 Tab 替换', tab.defaultPrevented, true);
+    await settle(20); // 让第一次只读检查完成，留下 150ms 的最终检查。
+    const replaced = input.value;
+    await inject();
+    await ready();
+    record('替换后重注入保留当前草稿', input.value, replaced);
+    input.value = ''; // 模拟页面在旧最终检查前回滚为空，故意不发 input。
+    await settle(180);
+    record('退休实例的延迟替换校验不能写回旧草稿', input.value, '');
+    record('退休实例不显示替换失败备份', popupCount(), 0);
+    const noRequest = apiCalls;
+    await inject();
+    await ready();
+    await settle(360);
+    record('空草稿重注入保持安静', apiCalls, noRequest);
+    record('多次重注入最终仅一个消息监听', messageListeners.size, 1);
+    failConfig = true;
+    await inject();
+    record('初始化失败不能误报已接入', (await ready())?.success, false);
+    record('浏览器无未处理错误', testErrors.length, 0);
+  } catch (error) { testErrors.push(String(error.stack || error)); }
+  document.getElementById('results').textContent = JSON.stringify({ results: testResults, errors: testErrors }, null, 2);
+  window.testsFinished = true;
+});
+</script>
+</html>

@@ -8,6 +8,8 @@
 
 [下载与安装教程](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.8](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.8) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
 
+**Chrome 扩展源码现已开源，采用 [MIT 许可证](LICENSE)。** 可自行构建、修改与分发，保留版权及许可声明；[开发说明](docs/development.md) · [参与贡献](CONTRIBUTING.md)。
+
 ## 快速演示
 
 18 秒，静音中文字幕。展示整句自动翻译、Tab 替换、⌥R 手动翻译与复制粘贴，并介绍 AI 提问、英文邮件、海外社区交流等六类用途。画面为 Chrome 1.0.4 的真实 ChatGPT 操作，其他场景为用途示例，语言包已准备完成。**译文由你确认，插件不会自动发送消息。**
@@ -100,6 +102,14 @@ https://github.com/user-attachments/assets/f719d65a-cbc6-4a52-8514-7e74e88a4f86
 
 ## 关于这个仓库
 
-这个仓库公开维护 LiveTranslate 的产品介绍、正式发行包和反馈入口。**开发源码目前未公开，本仓库未提供开源许可证。** 安装包通过 Releases 附件提供，不包含在仓库源码下载 ZIP 中。
+这个仓库公开维护 LiveTranslate 的 Chrome 扩展源码、测试、构建脚本、产品介绍、正式发行包和反馈入口。2026-10-19 从已发布的纯 Chrome 1.0.8 源码开始公开；未发布的 Edge 实验不在此版本中，既有演示、版本标签和下载附件保留。
+
+源码构建：安装 Node.js 22.12+ 后执行 `npm ci --ignore-scripts`、`npm run build`，再在 Chrome 加载 `dist/`。完整验证、可选浏览器测试和打包见[开发说明](docs/development.md)。GitHub 的“Download ZIP”下载源码；直接安装仍请使用 Releases 中的正式插件 ZIP。
+
+首个稳定源码快照为 [source-v1.0.8](https://github.com/yangchao228/LiveTranslate/tree/source-v1.0.8)。早期 `v1.0.x` 标签保留当时的发行说明，获取扩展源码请使用本源码标签或 `main`。
+
+## 许可证
+
+项目自有源码和文档采用 [MIT License](LICENSE)，允许使用、修改、分发及商业使用，需保留版权和许可声明，软件按原样提供。第三方依赖、浏览器模型及截图中其他平台内容保留各自条款，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 发布者：**AI生命克劳德** · 联系：<yangchao228@gmail.com> · [个人站](https://yangxingzhi.reai.group/zh/products/live-translate) · [隐私政策](https://yangxingzhi.reai.group/live-translate/privacy-policy.html)

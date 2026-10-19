@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LiveTranslate 整句与异步回归</title>
+<style>body{font:16px sans-serif;margin:30px}textarea,input,[contenteditable]{display:block;min-height:40px;width:600px;border:1px solid #999;margin:10px}pre{white-space:pre-wrap}</style>
+<h1>整句、手动范围与请求一致性</h1>
+<p>实际内容脚本构建；Chrome 与火山接口为可控替身，不访问真实 API。</p>
+<textarea id="first"></textarea><textarea id="second"></textarea>
+<div id="rich" contenteditable="true"></div><button id="outside">其他焦点</button>
+<pre id="results">等待测试…</pre>
+<script>
+window.testResults = []; window.testErrors = []; window.requests = [];
+const listeners = []; const storageWaiters = []; let delayStorage = false;
+window.chrome = window.chrome || {};
+chrome.runtime = {
+  onMessage: { addListener(fn) { listeners.push(fn); } },
+  sendMessage(message) {
+    if (message.type === 'GET_POPUP_OFFSET') return chrome.storage.local.get('liveTranslatePopupOffset').then(value => ({success:true,offset:value.liveTranslatePopupOffset || null}));
+    if (message.type === 'SET_POPUP_OFFSET' || message.type === 'CLEAR_POPUP_OFFSET') return Promise.resolve({success:true});
+    if (message.type === 'GET_TRANSLATION_CONFIG') return Promise.resolve({success:true,config:{provider:'volcengine',revision:'initial'}});
+    if (message.type === 'GET_EXTENSION_STATE') return Promise.resolve({enabled: true});
+    return new Promise(callback => {
+    const request = message.request;
+    requests.push({text:request.text, resolve: (translatedText = 'Translated.') => callback({success:true,data:{translatedText}}), reject: () => callback({success:false,error:'受控失败'})});
+    });
+  }
+};
+chrome.storage = {local:{get(){return delayStorage ? new Promise(resolve=>storageWaiters.push(resolve)) : Promise.resolve({})},async set(){},async remove(){}}};
+addEventListener('error', e=>testErrors.push(e.message));
+addEventListener('unhandledrejection', e=>testErrors.push(String(e.reason)));
+</script>
+<script src="../dist-local/content/content.js"></script>
+<script>
+addEventListener('load', async()=>{
+ const wait=ms=>new Promise(r=>setTimeout(r,ms));
+ const first=document.getElementById('first'), second=document.getElementById('second'), rich=document.getElementById('rich');
+ const record=(name,actual,expected)=>testResults.push({name,actual,expected,passed:actual===expected});
+ const popup=()=>document.querySelector('.live-translate-enhanced-popup');
+ const translated=()=>document.querySelector('.translated-text')?.textContent;
+ const message=(type,extra={})=>{let result;listeners.forEach(fn=>fn({type,...extra},{},value=>result=value));return result};
+ const read=e=>'value' in e?e.value:e.textContent;
+ function caret(e,offset,end=offset){
+   e.focus();
+   if('setSelectionRange' in e){e.setSelectionRange(offset,end);return;}
+   const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n=w.nextNode(),remaining=offset;
+   while(n&&remaining>n.textContent.length){remaining-=n.textContent.length;n=w.nextNode();}
+   const r=document.createRange();if(n)r.setStart(n,remaining);else r.selectNodeContents(e);
+   r.collapse(true);getSelection().removeAllRanges();getSelection().addRange(r);
+ }
+ const type=(text,e=first,offset=text.length)=>{
+   if('value' in e)e.value=text;else e.textContent=text;
+   caret(e,offset);e.dispatchEvent(new InputEvent('input',{bubbles:true}));
+ };
+ const tab=e=>{const event=new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true});e.dispatchEvent(event);return event.defaultPrevented};
+ const close=()=>document.querySelector('.header-close')?.click();
+ const reset=async()=>{
+   message('EXTENSION_STATE_CHANGED',{enabled:false});
+   requests.splice(0).forEach(r=>r.resolve());
+   first.value='';second.value='';rich.textContent='';
+   delayStorage=false;storageWaiters.splice(0).forEach(r=>r({}));
+   message('EXTENSION_STATE_CHANGED',{enabled:true});
+   first.focus();await wait(20);
+ };
+ try{
+  await wait(40);
+  type('我明天去上海，');await wait(350);
+  type('我明天去上海，如果你有空，');await wait(350);
+  record('两个逗号均不请求',requests.length,0);record('停顿无预览',!!popup(),false);
+  record('无结果放行 Tab',tab(first),false);
+  type('我明天去上海，如果你有空，我们一起吃饭。');await wait(350);
+  record('翻译完整语义句',requests[0]?.text,'我明天去上海，如果你有空，我们一起吃饭。');
+  record('加载中放行 Tab',tab(first),false);
+  first.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(350);
+  record('进行中重复事件去重',requests.length,1);
+  requests[0]?.resolve('Dinner?');await wait(30);
+  record('结果统一保留句号',translated(),'Dinner.');
+  record('有效结果拦截 Tab',tab(first),true);record('完整句替换',first.value,'Dinner.');
+  await wait(350);record('替换 input 不形成循环',requests.length,1);record('替换不弹空预览',!!popup(),false);
+
+  await reset();type('English only.');await wait(350);
+  record('纯英文不请求也不弹窗',requests.length===0&&!popup(),true);
+  type('无标点短消息');await wait(350);record('无标点自动保持安静',requests.length===0&&!popup(),true);
+  record('手动无标点可用',message('TRANSLATE_SELECTION').success,true);
+  record('手动无选区使用全文',requests[0]?.text,'无标点短消息');
+  message('TRANSLATE_SELECTION');record('重复手动请求去重',requests.length,1);
+  requests[0]?.resolve('Short message');await wait(30);tab(first);record('手动全文替换',first.value,'Short message');
+
+  await reset();type('第一句。\n第二行未完成');
+  message('TRANSLATE_SELECTION');record('手动覆盖多句多行全文',requests[0]?.text,'第一句。\n第二行未完成');
+  requests[0]?.resolve('First.\nSecond');await wait(30);tab(first);record('多行全文未丢前文',first.value,'First.\nSecond');
+
+  await reset();type('前文🙂 选中的内容 后续草稿');
+  const start=first.value.indexOf('选中');caret(first,start,start+6);
+  message('TRANSLATE_SELECTION');record('手动完整发送选区（含选中的空格）',requests[0]?.text,'选中的内容 ');
+  requests[0]?.resolve('Selection');await wait(30);
+  document.querySelector('.action-replace')?.focus();document.querySelector('.action-replace')?.click();
+  record('按钮只替换选区',first.value,'前文🙂 Selection后续草稿');
+  record('手动光标在译文后',first.selectionStart,'前文🙂 Selection'.length);
+  document.execCommand('insertText',false,'x');record('手动继续输入位置',first.value,'前文🙂 Selectionx后续草稿');
+
+  await reset();type('输入法组合测试');first.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+  type('输入法组合测试。');await wait(350);record('composition 中不请求',requests.length,0);
+  first.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}));
+  first.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(350);
+  record('确认上屏仅请求一次',requests.length,1);requests[0]?.resolve();await wait(20);
+
+  await reset();type('输入法后方追加的候选。');await wait(80);
+  first.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+  type('输入法后方追加的候选。新草稿');await wait(350);
+  record('后句组合期间推迟候选请求',requests.length,0);
+  first.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}));await wait(350);
+  record('后句组合结束保留前句候选',requests[0]?.text,'输入法后方追加的候选。');
+
+  await reset();type('确认真的吗？');await wait(80);type('确认真的吗？！');await wait(80);type('确认真的吗？！”');await wait(350);
+  record('合并连续标点和闭引号',requests.map(r=>r.text).join('|'),'确认真的吗？！”');
+
+  await reset();type('旧的候选句。');await wait(80);type('修改后的候选句。');await wait(350);
+  record('防抖修改只请求新原文',requests.map(r=>r.text).join('|'),'修改后的候选句。');
+
+  await reset();type('保留待译完整句。');await wait(80);type('保留待译完整句。后方继续输入');await wait(350);
+  record('防抖期间句后继续输入仍请求原句',requests[0]?.text,'保留待译完整句。');
+  requests[0]?.resolve('Keep sentence.');await wait(30);type(first.value+'更多');
+  record('后方追加保留结果',translated(),'Keep sentence.');tab(first);
+  record('保留句后草稿',first.value,'Keep sentence.后方继续输入更多');
+  document.execCommand('insertText',false,'x');record('光标在后方草稿前',first.value,'Keep sentence.x后方继续输入更多');
+
+  await reset();type('乱序旧句。');await wait(350);type('乱序新句！');await wait(350);
+  record('不同原句分别发起请求',requests.length,2);
+  requests[1]?.resolve('New.');await wait(30);requests[0]?.resolve('Old.');await wait(30);
+  record('旧响应不能覆盖新结果',translated(),'New!');tab(first);record('乱序替换用新结果',first.value,'New!');
+
+  await reset();type('即将删除的原句。');await wait(350);type('');requests[0]?.resolve('Deleted.');await wait(30);
+  record('删除后旧结果不显示',!!popup(),false);record('删除后 Tab 放行',tab(first),false);
+
+  await reset();type('前文。目标原句。');await wait(350);type('改动。目标原句。',first,2);requests[0]?.resolve('Stale.');await wait(30);
+  record('前方等长修改使旧偏移失效',!!document.querySelector('.translated-text'),false);record('前方修改不接受旧译文',tab(first),false);
+
+  await reset();type('测试切换输入框。');await wait(350);second.focus();requests[0]?.resolve('Switch.');await wait(30);
+  record('切换输入框不显示旧结果',!!popup(),false);record('异步不抢回焦点',document.activeElement===second,true);
+  record('另一个框不拦截 Tab',tab(second),false);
+
+  await reset();type('关闭加载中的结果。');await wait(350);close();requests[0]?.resolve('Closed.');await wait(30);
+  record('主动关闭后响应不复活',!!popup(),false);
+  first.dispatchEvent(new InputEvent('input',{bubbles:true}));await wait(350);record('关闭后重复事件不重开',!!popup(),false);
+
+  await reset();type('关闭插件中的请求。');await wait(350);message('EXTENSION_STATE_CHANGED',{enabled:false});
+  requests[0]?.resolve('Disabled.');message('EXTENSION_STATE_CHANGED',{enabled:true});await wait(30);
+  record('启停后旧响应不复活',!!popup(),false);
+
+  await reset();type('空响应不能替换。');await wait(350);requests[0]?.resolve('');await wait(30);
+  record('空译文显示错误状态',popup()?.textContent.includes('空译文'),true);
+  record('错误状态没有替换按钮',!!document.querySelector('.action-replace'),false);record('错误状态 Tab 放行',tab(first),false);
+
+  await reset();type('前句。 \n  🙂中间完整句。后续未完',first,'前句。 \n  🙂中间完整句。'.length);await wait(350);
+  record('当前编辑位置整句含 emoji',requests[0]?.text,'🙂中间完整句。');
+  requests[0]?.resolve('Middle.');await wait(30);tab(first);
+  record('空格换行不导致偏移',first.value,'前句。 \n  Middle.后续未完');
+  record('中间替换光标正确',first.selectionStart,'前句。 \n  Middle.'.length);
+
+  await reset();type('前句。今天去上海。后文',first,5);await wait(350);
+  record('句内编辑定位已完成所在句',requests[0]?.text,'今天去上海。');
+
+  await reset();rich.innerHTML='<p>第一段🙂</p><p>第二段<br>第三行</p>';
+  rich.focus();const r=document.createRange();r.selectNodeContents(rich);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r);
+  message('TRANSLATE_SELECTION');record('富文本块和 br 不丢换行',requests[0]?.text,'第一段🙂\n第二段\n第三行');
+  requests[0]?.resolve('One\nTwo\nThree');await wait(30);tab(rich);document.execCommand('insertText',false,'x');
+  record('富文本多行替换后继续输入',rich.innerText,'One\nTwo\nThreex');
+
+  await reset();rich.innerHTML='<p>前文🙂</p><p>选区内容</p><p>后文</p>';
+  // Chrome 的 innerText 会在 p 段落之间保留空行；选区使用的规范化偏移只计一个换行。
+  record('原始 p 段落显示保留空行',rich.innerText,'前文🙂\n\n选区内容\n\n后文');
+  const node=rich.children[1].firstChild;rich.focus();const selectionRange=document.createRange();selectionRange.setStart(node,0);selectionRange.setEnd(node,4);getSelection().removeAllRanges();getSelection().addRange(selectionRange);
+  message('TRANSLATE_SELECTION');record('富文本选区偏移包含块换行',requests[0]?.text,'选区内容');
+  requests[0]?.resolve('Selected');await wait(30);tab(rich);
+  record('富文本只替换选区保留两侧',rich.innerText,'前文🙂\n\nSelected\n\n后文');
+  record('富文本选区替换保留三个段落',rich.querySelectorAll(':scope > p').length,3);
+  record('富文本选区替换未改前段节点',rich.firstElementChild.textContent,'前文🙂');
+  record('富文本选区替换未改后段节点',rich.lastElementChild.textContent,'后文');
+  document.execCommand('insertText',false,'x');record('富文本选区替换光标',rich.innerText,'前文🙂\n\nSelectedx\n\n后文');
+
+  await reset();delayStorage=true;type('关闭延迟创建的框。');await wait(350);
+  first.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  requests[0]?.resolve('Late.');delayStorage=false;storageWaiters.splice(0).forEach(r=>r({}));await wait(40);
+  record('关闭使延迟挂载失效',!!popup(),false);
+
+  await reset();type('长草稿第一段\n'+'这是有上下文的完整段落\n'.repeat(25));
+  message('TRANSLATE_SELECTION');requests[0]?.resolve('First paragraph\n'+'A complete translated paragraph\n'.repeat(25));await wait(250);
+  const box=popup()?.getBoundingClientRect(), buttonBox=document.querySelector('.action-replace')?.getBoundingClientRect();
+  window.longLayout={top:box?.top,bottom:box?.bottom,height:box?.height,buttonBottom:buttonBox?.bottom,viewport:innerHeight};
+  record('长草稿保留多行显示',getComputedStyle(document.querySelector('.translated-text')).whiteSpace,'pre-wrap');
+  record('长草稿弹框位于视口内',!!box&&box.top>=0&&box.bottom<=innerHeight,true);
+  record('长草稿替换按钮可见',!!buttonBox&&buttonBox.top>=0&&buttonBox.bottom<=innerHeight,true);
+  await reset();type('切换服务后不能用旧响应。');await wait(350);
+  message('TRANSLATION_CONFIG_CHANGED',{config:{provider:'custom',revision:'next-service'}});
+  requests[0]?.resolve('Old provider.');await wait(30);
+  record('切换服务清除加载和旧响应',!!popup(),false);
+  record('切换服务后 Tab 不使用旧译文',tab(first),false);
+  message('TRANSLATE_SELECTION');requests[1]?.resolve('New provider.');await wait(30);
+  record('同一草稿切换后重新请求新服务',requests.length,2);
+  record('切换后的结果可替换',tab(first),true);
+  record('实际替换新服务结果',first.value,'New provider.');
+  await reset();record('无浏览器异常',testErrors.length,0);
+ }catch(error){testErrors.push(String(error));}
+ document.getElementById('results').textContent=JSON.stringify({results:testResults,errors:testErrors},null,2);
+ window.testsFinished=true;
+});
+</script>
+</html>

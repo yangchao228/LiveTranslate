@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="currentColor" role="img" aria-labelledby="title">
+  <title id="title">LiveTranslate 句隙标志</title>
+  <path d="M12 9h31c7.73 0 14 6.27 14 14v1H40c-6.63 0-12 3.63-12 9H17v-8a5 5 0 0 0-5-5H7v-6a5 5 0 0 1 5-5Z"/>
+  <path d="M36 32h11v7a5 5 0 0 0 5 5h5v6a5 5 0 0 1-5 5H21c-7.73 0-14-6.27-14-14v-1h17c6.63 0 12-2.63 12-8Z"/>
+</svg>

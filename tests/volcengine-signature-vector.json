@@ -1,0 +1,11 @@
+{
+  "source": "volcengine Python SDK SignerV4, synthetic keys only",
+  "date": "2026-09-29T01:02:03.000Z",
+  "body": "{\"SourceLanguage\":\"zh\",\"TargetLanguage\":\"en\",\"TextList\":[\"Hello. 太棒了。\"]}",
+  "headers": {
+    "Content-Type": "application/json",
+    "X-Date": "20260929T010203Z",
+    "X-Content-Sha256": "629840286720385d18c03d10210c2bfea6913dc9071fb7b09935a0a0287bdd42",
+    "Authorization": "HMAC-SHA256 Credential=example-ak-only/20260929/cn-north-1/translate/request, SignedHeaders=content-type;host;x-content-sha256;x-date, Signature=c4a8d275c68cbe6c362c168ed91afa4f1237fe870b407e13c0db6082fbcbcc32"
+  }
+}

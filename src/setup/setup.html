@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>准备本机翻译 · LiveTranslate</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --page: #edf0f5; --paper: #fff; --ink: #18253d; --muted: #59677d;
+      --line: #dce2ec; --field-line: #8393ad; --accent: #3158bd; --on-accent: #fff;
+      --tint: #edf2ff; --inset: #f5f7fa; --hover: #e6edfc; --accent-hover: #2549a8;
+      --danger: #a63746; --danger-tint: #fff0f2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); font-size: 15px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    a:hover { text-decoration-thickness: 2px; }
+    a, button, input, select { -webkit-tap-highlight-color: transparent; }
+    a, button { touch-action: manipulation; }
+    :where(a, button, input, select):focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .page { width: min(1040px, 100%); margin: 0 auto; padding: 28px 32px 48px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); font-size: 19px; font-weight: 650; letter-spacing: -.5px; line-height: 1.3; white-space: nowrap; }
+    .brand svg { display: block; flex: none; width: 36px; height: 36px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--tint); color: var(--accent); }
+    .topbar a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
+    .intro { max-width: 720px; margin: 36px 0 28px; }
+    h1 { margin: 0 0 11px; font-size: clamp(25px, 3.4vw, 30px); line-height: 1.35; letter-spacing: -.7px; font-weight: 600; text-wrap: balance; }
+    h2 { margin: 0 0 12px; font-size: 17px; line-height: 1.5; letter-spacing: -.2px; font-weight: 600; }
+    p { margin: 12px 0; overflow-wrap: anywhere; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 32px; align-items: start; }
+    button { max-width: 100%; min-height: 44px; padding: 11px 17px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; font-size: 14px; font-weight: 550; line-height: 1.5; cursor: pointer; transition: background-color 150ms, border-color 150ms, transform 120ms; }
+    button:hover:not(:disabled) { border-color: var(--field-line); background: var(--inset); }
+    button:active:not(:disabled) { transform: translateY(1px); background: var(--hover); }
+    button:disabled { opacity: .48; cursor: default; }
+    .margin-note { padding-top: 24px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    .margin-note h2 { margin-bottom: 9px; color: var(--ink); font-size: 14px; font-weight: 600; }
+    [hidden] { display: none !important; }
+
+    .intro > p:last-child { margin: 0; color: var(--muted); font-size: 15px; }
+    #welcome { margin: 0 0 21px; padding: 13px 16px; border: 1px solid var(--line); border-left: 2px solid var(--accent); border-radius: 0 7px 7px 0; background: var(--tint); font-size: 13px; line-height: 1.8; }
+    .preparation { min-width: 0; padding: 30px 32px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .language-pair { display: flex; align-items: center; gap: 17px; padding-bottom: 25px; border-bottom: 1px solid var(--line); font-size: 17px; font-weight: 550; }
+    .language-pair > span { display: grid; place-items: center; min-width: 74px; min-height: 52px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--inset); }
+    .language-pair svg { display: block; flex: none; width: 21px; height: 21px; color: var(--accent); }
+    .task { padding-top: 24px; }
+    .task h2 { margin-bottom: 11px; }
+    #status { min-height: 3.6em; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+    progress { display: block; width: 100%; height: 6px; margin: 23px 0 12px; overflow: hidden; border: 0; border-radius: 4px; background: var(--line); accent-color: var(--accent); }
+    progress::-webkit-progress-bar { background: var(--line); border-radius: 4px; }
+    progress::-webkit-progress-value { background: var(--accent); border-radius: 4px; }
+    progress::-moz-progress-bar { background: var(--accent); border-radius: 4px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 23px; }
+    .primary-action { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+    .primary-action:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .primary-action:active:not(:disabled) { background: var(--accent-hover); }
+    #sample { margin: 24px 0 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--tint); color: var(--ink); white-space: pre-wrap; font-size: 13px; line-height: 1.8; }
+    #sample:empty { display: none; }
+    .device-note { margin: 26px 0 0; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.8; }
+    ol { padding-left: 21px; margin: 0; }
+    li { padding-left: 4px; margin-bottom: 16px; }
+    li::marker { color: var(--accent); font-size: 12px; font-weight: 600; }
+    kbd { display: inline-block; padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; font-size: 11px; line-height: 1.7; white-space: nowrap; }
+    .secondary { margin-top: 24px; padding-top: 19px; border-top: 1px solid var(--line); }
+    .secondary a { display: inline-block; padding: 4px 0; }
+    .note { color: var(--muted); font-size: 12px; line-height: 1.8; }
+    .footer-note { max-width: 690px; margin: 22px 0 0; }
+
+
+
+    @media (max-width: 760px) {
+      .page { padding: 23px 20px 32px; }
+      .intro { margin: 27px 0 23px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      .preparation { padding: 25px; }
+      .margin-note { padding: 0 6px; }
+      #status { min-height: 0; }
+    }
+    @media (max-width: 420px) {
+      .page { padding: 18px 16px 30px; }
+      .topbar { gap: 12px; padding-bottom: 16px; }
+      .brand { gap: 9px; font-size: 17px; }
+      .brand svg { width: 34px; height: 34px; border-radius: 9px; }
+      .topbar a { font-size: 12px; }
+      .intro { margin-top: 25px; }
+      .intro > p:last-child { font-size: 16px; }
+      .preparation { padding: 21px 19px; }
+      .language-pair { gap: 14px; font-size: 16px; }
+      .language-pair > span { min-width: 69px; min-height: 49px; padding: 8px 14px; }
+      .actions button { width: 100%; }
+      #welcome { padding: 12px 13px; }
+      #sample { padding: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+<main class="page">
+  <div class="topbar">
+    <div class="brand"><svg data-brand-mark viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M12 9h31c7.73 0 14 6.27 14 14v1H40c-6.63 0-12 3.63-12 9H17v-8a5 5 0 0 0-5-5H7v-6a5 5 0 0 1 5-5Z"/><path d="M36 32h11v7a5 5 0 0 0 5 5h5v6a5 5 0 0 1-5 5H21c-7.73 0-14-6.27-14-14v-1h17c6.63 0 12-2.63 12-8Z"/></svg>LiveTranslate</div>
+    <a href="../help/user-guide.html">使用说明</a>
+  </div>
+  <header class="intro">
+    <p id="welcome" hidden>已安装成功。先准备本机语言包，再回到网页写一句中文、查看英文，最后决定复制或替换。</p>
+    <h1 id="preparation-title">准备好语言包，回到写作</h1>
+    <p id="preparation-description">首次使用需要联网下载中英语言包。准备好后，草稿只在这台电脑翻译。</p>
+  </header>
+  <div class="workspace">
+    <section id="language-preparation" class="preparation" aria-label="中英语言包准备">
+      <div class="language-pair"><span id="source-language">中文</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-label="翻译为" role="img"><path d="M4 12h16m-6-6 6 6-6 6"/></svg><span id="target-language">英文</span></div>
+      <div class="task">
+        <h2 id="task-title">下载并验证本机翻译</h2>
+        <p id="status" role="status" aria-live="polite">正在检查浏览器支持…</p>
+        <progress id="progress" max="1" value="0" hidden aria-label="语言包准备进度"></progress>
+        <div class="actions"><button id="start-writing" class="primary-action" hidden>查看使用方法</button><button id="prepare" class="primary-action" disabled>准备语言包并验证</button><button id="cancel" hidden>取消</button></div>
+        <p id="sample"></p>
+      </div>
+      <p id="device-note" class="device-note">需要桌面 Chrome 138 或更新版本，首次下载时请保持本页打开。失败时可检查网络或浏览器策略后重试，不会自动切换云端。翻译结果仍需你确认。</p>
+    </section>
+    <aside class="margin-note" aria-label="准备后的使用步骤">
+      <h2>准备好后，这样开始</h2>
+      <ol>
+        <li id="usage-first">回到网页，点击输入框，输入完整中文句子。</li>
+        <li id="usage-second">无句号或整段草稿可用 <kbd>Alt/⌥+R</kbd> 手动翻译，<kbd>Tab</kbd> 替换原文。</li>
+        <li id="usage-third"><kbd>Alt/⌥+T</kbd> 启停；快捷键若冲突，可在扩展工具栏中调整。</li>
+      </ol>
+      <div class="secondary">
+        <p>本机模式无需申请密钥、安装 Python 或运行翻译服务。</p>
+        <a href="../options/options.html">翻译设置</a><br>
+        <a href="../help/user-guide.html">完整使用说明</a>
+      </div>
+    </aside>
+  </div>
+  <p id="footer-note" class="note footer-note">可以关闭本页，之后从工具栏“准备本机翻译”再次打开。更新扩展不会重复打开欢迎页。</p>
+</main>
+<script src="setup.js"></script>
+</body>
+</html>

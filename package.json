@@ -1,0 +1,40 @@
+{
+  "name": "live_translater",
+  "version": "1.0.8",
+  "description": "translate web plugin",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "dev:local": "vite build --mode development-local --watch",
+    "build:local": "vite build --mode development-local",
+    "build": "vite build",
+    "test": "node --test tests/*.test.cjs",
+    "typecheck": "tsc --noEmit",
+    "assets:store": "node scripts/render-store-assets.cjs",
+    "release:check": "python3 scripts/package-release.py --check-only",
+    "release:package": "npm run build && python3 scripts/package-release.py"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yangchao228/LiveTranslate.git"
+  },
+  "keywords": [],
+  "author": "yangchao228",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yangchao228/LiveTranslate/issues"
+  },
+  "homepage": "https://github.com/yangchao228/LiveTranslate#readme",
+  "devDependencies": {
+    "@types/chrome": "^0.1.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.2",
+    "vue": "^3.5.18"
+  }
+}

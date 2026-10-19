@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LiveTranslate · 写作演示</title>
+<style>
+  *{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f5f6fb;color:#22283b;font:16px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+  header{height:80px;border-bottom:1px solid #e1e4ef;background:white;padding:24px 64px;display:flex;align-items:center;gap:14px}
+  .mark{display:grid;place-items:center;width:34px;height:34px;background:#667eea;color:white;border-radius:8px;font-weight:700}header strong{font-size:23px}header span:last-child{margin-left:auto;color:#66718b;font-size:14px}
+  main{max-width:760px;margin:48px auto}small{color:#5968ba;font-size:14px}h1{margin:10px 0 12px;font-size:32px}p{line-height:1.8;color:#66718b;margin-bottom:26px}
+  label{display:block;font-size:14px;font-weight:600;margin:20px 0 10px}textarea,input,[contenteditable]{display:block;width:100%;padding:20px 22px;background:white;color:#22283b;border:1px solid #c9cfe2;border-radius:10px;outline-color:#667eea;font:19px/1.7 inherit}
+  textarea{height:140px;font:19px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;resize:none}
+  [contenteditable]{min-height:110px;white-space:pre-wrap;font-size:19px}input{font-size:19px}
+  .hint{font-size:14px;color:#68748d;margin-top:14px}button{border:1px solid #c9cfe2;background:white;color:#354575;padding:9px 16px;border-radius:7px;cursor:pointer}
+  .controls{margin-top:20px;display:flex;gap:12px}.controls span{margin-left:auto;color:#76829a;font-size:13px;align-self:center}
+</style>
+<header><div class="mark">译</div><strong>LiveTranslate</strong><span>本地写作演示 · 不提交内容</span></header>
+<main><small>中文写作，英文表达</small><h1>写完一句，先看看英文</h1><p>在网页输入框中写中文，查看英文预览，再决定复制或替换。<br>默认使用 Chrome 本机翻译；发送与发布始终由你操作。</p>
+<label for="draft">写作草稿</label><textarea id="draft" placeholder="输入中文完整句，或选中文字后手动翻译"></textarea>
+<div class="hint">自动整句预览 · Alt+R 手动翻译 · Tab 接受译文（Mac 使用 ⌥）</div>
+<label id="rich-label">富文本草稿</label><div id="rich" role="textbox" aria-labelledby="rich-label" contenteditable="true"></div>
+<div class="controls"><button id="next" type="button">下一个控件</button><span>本页没有发送按钮</span></div>
+<input id="single" aria-label="单行写作草稿" placeholder="单行输入验收" hidden>
+</main></html>
