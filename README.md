@@ -2,13 +2,40 @@
 
 # LiveTranslate
 
-**写作时把中文翻成英文，阅读时把选中的英文翻成中文。**
+**逛海外社区，别被英文劝退：在当前网页，沉浸式读懂与表达。**
 
-写邮件、填表单、整理英文消息时，直接写中文，查看译文后决定复制或替换。阅读英文网页时，选中一段正文，主动翻译成中文。
+LiveTranslate 提供沉浸式英文读写体验：不用离开当前网页，划选英文、主动看中文译文，再在当前输入框写中文，完整句结束后翻成英文。核对后复制或在兼容输入框替换，是否发送由你决定。
 
-[下载与安装教程](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.9](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
+**免费本地翻译 · 保护隐私 · [MIT 开源](LICENSE)**。默认使用 Chrome 本地模型，无需 LiveTranslate 账号或 API 密钥，无云翻译调用费。本机模式不会把待译内容额外发送给项目方或云翻译接口；首次需联网准备双向语言包。可选远程服务的数据处理与费用另按服务商规则，不会在本机失败后自动转云端。
 
-**Chrome 扩展源码现已开源，采用 [MIT 许可证](LICENSE)。** 可自行构建、修改与分发，保留版权及许可声明；[开发说明](docs/development.md) · [参与贡献](CONTRIBUTING.md)。
+[个人站下载与安装](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.9](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9) · [查看源码](src) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
+
+<a href="assets/local-reading-writing/cover.png"><img src="assets/local-reading-writing/cover.png" width="460" alt="逛海外社区，别被英文劝退：免费本地模型、隐私保护和 MIT 开源，展示真实 Reddit 阅读与写作浮窗"></a>
+
+## 沉浸式英文读写：读懂，再表达
+
+1. **划词读懂**：选中网页正文英文，再点“翻译成中文”。只划选不会发起翻译，正文保持原样。
+2. **中文整句输入**：先组织自己的想法。逗号、分号和停顿不触发；以句号、问号或感叹号结束完整中文句后，才自动翻译，减少半句缺少上下文的问题。无标点草稿可用手动翻译。
+3. **核对后采用**：支持的输入框可按 Tab 或点替换按钮；本次 Reddit 编辑器走真实复制粘贴。插件不会自动发送消息，译文仍需检查。
+
+<details>
+<summary>展开真实截图：划词阅读 → 中文整句 → 确认后复制粘贴（点击图片查看大图）</summary>
+
+### 划词读懂英文
+
+<a href="assets/local-reading-writing/reading.png"><img src="assets/local-reading-writing/reading.png" width="460" alt="Reddit 正文英文选区、翻译成中文入口及真实中文译文"></a>
+
+### 中文整句输入后再翻译
+
+<a href="assets/local-reading-writing/sentence.png"><img src="assets/local-reading-writing/sentence.png" width="460" alt="完整中文问题触发英文译文，Reddit 浮窗保留复制译文按钮与不直接替换提示"></a>
+
+### 确认后复制粘贴
+
+<a href="assets/local-reading-writing/confirm.png"><img src="assets/local-reading-writing/confirm.png" width="460" alt="真实 Reddit 中文草稿与用户复制粘贴后的英文草稿对照，未发布评论"></a>
+
+这组清透蓝白图保留真实 Reddit 截图和原译文，演示草稿未发布。截图未绑定当前发行版本，不代表 X 或所有编辑器均已验收。
+
+</details>
 
 ## 快速演示
 
@@ -16,19 +43,15 @@
 
 https://github.com/user-attachments/assets/f719d65a-cbc6-4a52-8514-7e74e88a4f86
 
-![LiveTranslate 在输入框旁显示真实英文译文，提供替换原文与复制译文按钮](assets/preview.png)
-
-上图为 Chrome 1.0.3 使用本机模型翻译固定示例的实际截图。译文仍需根据上下文检查。
-
 ## 适合哪些场景
 
-先用中文组织想法，再快捷得到英文表达。
+优先解决海外社区里“看不懂，也写不出”的困扰，也适合邮件和日常工作。X / Reddit 等社区是用途方向；本页真实截图来自 Reddit，具体编辑器兼容性以实际使用为准。
 
 | 使用场景 | 具体用途 | 中文示例 |
 | --- | --- | --- |
-| **AI 提问** | 在 ChatGPT 输入框里，用中文组织问题或提示词，再翻成英文。 | 请帮我整理明天的会议计划 |
-| **英文邮件和工作消息** | 确认时间、跟进进度、表达感谢。 | 请帮我确认明天会议的时间。 |
 | **海外社区交流** | 写英文评论、提出问题、回复其他用户。 | 这个方法很有帮助，可以分享具体步骤吗？ |
+| **英文邮件和工作消息** | 确认时间、跟进进度、表达感谢。 | 请帮我确认明天会议的时间。 |
+| **AI 提问** | 在 ChatGPT 输入框里，用中文组织问题或提示词，再翻成英文。 | 请帮我整理明天的会议计划 |
 | GitHub 问题反馈 | 描述故障、补充复现步骤、提出功能建议。 | 更新后按钮无法点击，刷新页面后仍然如此。 |
 | 英文表单和客服咨询 | 填写需求说明、产品咨询或售后问题。 | 请问这个功能支持批量导出吗？ |
 | 日常英文表达练习 | 对照自己的中文与译文，积累常用表达。 | 我想调整一下计划，优先完成最重要的任务。 |
