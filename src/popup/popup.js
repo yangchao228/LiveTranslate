@@ -267,6 +267,7 @@ class PopupManager {
       this.translateShortcut = shortcut('translate_selection')
       this.shortcutState = this.translateShortcut ? 'bound' : 'unbound'
       document.getElementById('toggle-shortcut').textContent = `输入中译英：${shortcut('toggle_extension') || '未设置'}`
+      document.getElementById('reading-shortcut').textContent = `划词英译中：${shortcut('toggle_reading') || '未设置'}`
       document.getElementById('translate-shortcut').textContent = `手动翻译：${this.translateShortcut || '未设置'}`
     } catch {
       if (epoch !== this.readEpoch) return
@@ -274,6 +275,7 @@ class PopupManager {
       this.shortcutState = 'error'
       this.readFailures.add('shortcuts')
       document.getElementById('toggle-shortcut').textContent = '输入中译英快捷键读取失败，可打开快捷键设置查看。'
+      document.getElementById('reading-shortcut').textContent = '划词英译中快捷键读取失败，可打开快捷键设置查看。'
       document.getElementById('translate-shortcut').textContent = '翻译快捷键读取失败，可打开快捷键设置查看。'
     }
     this.updateUI()

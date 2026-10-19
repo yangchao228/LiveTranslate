@@ -1,5 +1,14 @@
 # 更新记录
 
+## 1.0.9 · 2026-10-19
+
+- 补齐三个快捷键：Alt+T（⌥T）切换输入中译英，Alt+Y（⌥Y）切换划词英译中，Alt+R（⌥R）手动翻译。
+- 两个开关独立切换，工具栏显示三个命令的实际绑定；激活扩展不设默认快捷键。更新保留原绑定，误绑或冲突可在 Chrome 快捷键设置中调整。
+- 手动翻译继续按正文选区或输入草稿定位目标，原稿、复制与替换规则保留；不新增权限或改变数据去向。
+- 公开对应 Chrome 源码与 MIT 许可，安装包附 LICENSE 和第三方说明。
+
+桌面 Chrome 138+ 手动分发，暂不支持 Edge，未上架 Chrome Web Store，无自动更新。下载见[个人站](https://yangxingzhi.reai.group/zh/products/live-translate)和 [v1.0.9 Release](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9)。从旧版升级时，在 `chrome://extensions/shortcuts` 确认“激活该扩展程序”留空，将 Alt+R（⌥R）绑定到“手动翻译选区或整个草稿”。
+
 ## 1.0.8 · 2026-10-18
 
 - 打开工具栏自动只读检查当前主页面连接；失联时提供“重新接入”，不刷新网页，不修改已有草稿、焦点或选区，不自动翻译旧草稿。

@@ -8,20 +8,20 @@
 </style></head>
 <body><main>
 <div class="brand"><svg data-brand-mark viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M12 9h31c7.73 0 14 6.27 14 14v1H40c-6.63 0-12 3.63-12 9H17v-8a5 5 0 0 0-5-5H7v-6a5 5 0 0 1 5-5Z"/><path d="M36 32h11v7a5 5 0 0 0 5 5h5v6a5 5 0 0 1-5 5H21c-7.73 0-14-6.27-14-14v-1h17c6.63 0 12-2.63 12-8Z"/></svg><span>LiveTranslate</span></div>
-<small>版本 1.0.8</small><h1>LiveTranslate 用户使用说明</h1>
-<p>Chrome 1.0.8 新增网页自检、按需恢复和双向语言包状态；输入中译英与划词英译中仍独立控制。工具栏“手动翻译”统一正文选区英译中与输入草稿中译英入口。在网页输入中文，预览英文，再由你决定是否替换。插件不会发送聊天消息。默认使用 Chrome 本机翻译，也可以用自己的 AK/SK 直连火山，或选择兼容服务。</p>
+<small>版本 1.0.9</small><h1>LiveTranslate 用户使用说明</h1>
+<p>Chrome 1.0.9 补齐三个独立快捷键：Alt+T 切换输入中译英、Alt+Y 切换划词英译中、Alt+R 手动翻译；保留网页自检、按需恢复和双向语言包状态；输入中译英与划词英译中仍独立控制。工具栏“手动翻译”统一正文选区英译中与输入草稿中译英入口。在网页输入中文，预览英文，再由你决定是否替换。插件不会发送聊天消息。默认使用 Chrome 本机翻译，也可以用自己的 AK/SK 直连火山，或选择兼容服务。</p>
 <nav><a href="#install">安装与更新</a><a href="#usage">日常使用</a><a href="#reading">划词英译中</a><a href="#services">选择翻译服务</a><a href="#volcengine">火山直连</a><a href="#custom">自定义服务</a><a href="#privacy">数据与费用</a><a href="#troubleshooting">排障</a><a href="#uninstall">重置与卸载</a></nav>
 <h2 id="install">1. 安装与更新</h2>
-<p>Chrome 1.0.8 通过<a href="https://yangxingzhi.reai.group/zh/products/live-translate">个人站下载与安装页</a>和<a href="https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.8">GitHub Release</a>手动分发，尚未在 Chrome Web Store 上架，没有自动更新。使用桌面 Chrome 138 或更新版本；本机翻译还取决于设备、网络和浏览器策略。当前暂不支持 Edge。</p>
-<ol><li>下载 <code>LiveTranslate-1.0.8.zip</code>，完整解压到长期保留的固定目录。不要直接加载 ZIP，也不要安装后删除该目录。</li><li>打开 <code>chrome://extensions/</code>，开启开发者模式，点击“加载未打包的扩展程序”，选择直接包含 <code>manifest.json</code> 的文件夹。核对扩展版本为 1.0.8。</li><li>在 Chrome 的扩展菜单中固定 LiveTranslate，便于打开工具栏。暂停其他 LiveTranslate 版本，避免两份同时翻译。</li><li>默认本机翻译：打开工具栏 →“准备语言包”→“准备语言包并验证”，保持准备页打开，等到出现实际英文示例和成功提示。工具栏分别显示中译英和英译中状态，在对应方向点击“准备”或“验证”。</li><li>回到 ChatGPT，点击输入框继续写作，无需刷新页面；已有草稿保留，恢复时不会自动翻译旧草稿。其他已打开的普通网页，先聚焦输入框并按 Alt+R（Mac：⌥R）或点击工具栏“手动翻译”，即可按需接入。</li></ol>
-<p><strong>从 1.0.3 或更早版本更新：</strong>先在旧版工具栏关闭“翻译开关”，等当前译文浮窗消失，再备份原目录，将新版 ZIP 完整解压并覆盖同一固定目录中的文件。在 <code>chrome://extensions/</code> 找到 LiveTranslate，点击重载并核对版本为 1.0.8，最后打开工具栏重新开启翻译。此顺序用于移除旧版页面监听，无需刷新 ChatGPT，已有输入框草稿保留。</p>
+<p>Chrome 1.0.9 通过<a href="https://yangxingzhi.reai.group/zh/products/live-translate">个人站下载与安装页</a>和<a href="https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9">GitHub Release</a>手动分发，尚未在 Chrome Web Store 上架，没有自动更新。使用桌面 Chrome 138 或更新版本；本机翻译还取决于设备、网络和浏览器策略。当前暂不支持 Edge。</p>
+<ol><li>下载 <code>LiveTranslate-1.0.9.zip</code>，完整解压到长期保留的固定目录。不要直接加载 ZIP，也不要安装后删除该目录。</li><li>打开 <code>chrome://extensions/</code>，开启开发者模式，点击“加载未打包的扩展程序”，选择直接包含 <code>manifest.json</code> 的文件夹。核对扩展版本为 1.0.9。</li><li>在 Chrome 的扩展菜单中固定 LiveTranslate，便于打开工具栏。暂停其他 LiveTranslate 版本，避免两份同时翻译。</li><li>默认本机翻译：打开工具栏 →“准备语言包”→“准备语言包并验证”，保持准备页打开，等到出现实际英文示例和成功提示。工具栏分别显示中译英和英译中状态，在对应方向点击“准备”或“验证”。</li><li>回到 ChatGPT，点击输入框继续写作，无需刷新页面；已有草稿保留，恢复时不会自动翻译旧草稿。其他已打开的普通网页，先聚焦输入框并按 Alt+R（Mac：⌥R）或点击工具栏“手动翻译”，即可按需接入。</li></ol>
+<p><strong>从 1.0.3 或更早版本更新：</strong>先在旧版工具栏关闭“翻译开关”，等当前译文浮窗消失，再备份原目录，将新版 ZIP 完整解压并覆盖同一固定目录中的文件。在 <code>chrome://extensions/</code> 找到 LiveTranslate，点击重载并核对版本为 1.0.9，最后打开工具栏重新开启翻译。此顺序用于移除旧版页面监听，无需刷新 ChatGPT，已有输入框草稿保留。</p>
 <p><strong>1.0.4 及后续版本再次更新或重载：</strong>可保留开启状态，覆盖原目录后重载扩展，回到 ChatGPT 继续写作。其他已打开的普通网页，先点击目标输入框，再按 Alt+R（Mac：⌥R）或使用工具栏手动翻译完成补接。恢复只接入编辑器，不自动翻译或替换已有草稿，也不会发送消息。</p>
 <p>同一路径通常保留服务选择和自定义快捷键；换一个目录加载可能创建新扩展实例。重载会清除会话凭据，使用火山或需要令牌的服务时，请打开“翻译设置”重新填写。本机语言包由 Chrome 管理，重载扩展不等于重新下载语言包。</p>
 <h2 id="usage">2. 日常使用</h2>
-<ul><li><strong>自动翻译：</strong>中文完整句以 <code>。？！?!</code> 等明确句末标点结束后，等待约 300ms。逗号、分号、冒号和未完成的半句保持安静；纯英文不会自动请求。</li><li><strong>手动翻译：</strong>按 Alt+R（Mac：⌥R），或点击工具栏中的“手动翻译”。正文选区英译中，输入草稿中译英；按实际目标检查对应开关。正文选区需要开启“划词英译中”，输入草稿需要开启“输入中译英”。在输入框内有选区时只翻译选区；无选区时翻译当前输入框全文，支持无标点、多句和多行。</li><li><strong>确认替换：</strong>按 Tab 或点击“替换原文”。只替换预览对应的原文，光标放在译文末尾，后续草稿保留，可以直接继续输入。</li><li><strong>复制：</strong>点“复制”获得预览中的译文，再自行粘贴到目标位置。</li><li><strong>输入中译英：</strong>Alt+T（Mac：⌥T）或工具栏“输入中译英”开关。关闭后停止自动与手动草稿翻译并清除写作预览，划词英译中仍可使用；重新启用不会自动翻译历史草稿。</li></ul>
+<ul><li><strong>自动翻译：</strong>中文完整句以 <code>。？！?!</code> 等明确句末标点结束后，等待约 300ms。逗号、分号、冒号和未完成的半句保持安静；纯英文不会自动请求。</li><li><strong>手动翻译：</strong>按 Alt+R（Mac：⌥R），或点击工具栏中的“手动翻译”。正文选区英译中，输入草稿中译英；按实际目标检查对应开关。正文选区需要开启“划词英译中”，输入草稿需要开启“输入中译英”。在输入框内有选区时只翻译选区；无选区时翻译当前输入框全文，支持无标点、多句和多行。</li><li><strong>确认替换：</strong>按 Tab 或点击“替换原文”。只替换预览对应的原文，光标放在译文末尾，后续草稿保留，可以直接继续输入。</li><li><strong>复制：</strong>点“复制”获得预览中的译文，再自行粘贴到目标位置。</li><li><strong>输入中译英：</strong>Alt+T（Mac：⌥T）或工具栏“输入中译英”开关。关闭后停止自动与手动草稿翻译并清除写作预览，划词英译中仍可使用；重新启用不会自动翻译历史草稿。</li><li><strong>划词英译中：</strong>Alt+Y（Mac：⌥Y）或工具栏“划词英译中”开关，独立开启／关闭阅读翻译，不影响输入中译英。</li></ul>
 <p>没有有效译文时 Tab 保持网页原有功能；插件不接管 Enter 或网页发送快捷键。你修改原句、切换输入框、关闭预览、切换服务后，旧结果会失效，防止替换错内容。</p>
 <p class="note">“手动翻译整个草稿”包含输入框里前面的所有句子。截图中的 <code>Hello. 太棒了。 Who are you!</code> 会处理其中的中文。本机提供者保留纯英文句子、空白和换行，翻译含中文的句子；句内已有英文仍可能被模型调整。</p>
-<p>快捷键默认只在 Chrome 内生效，“激活该扩展程序”不设默认键。如果与别的扩展冲突或已有自定义设置，以工具栏显示的实际绑定为准；在 <code>chrome://extensions/shortcuts</code> 调整对应行。⌥T 只切换输入中译英，以 Chrome 快捷键设置中的实际命令为准。</p>
+<p>快捷键默认只在 Chrome 内生效，“激活该扩展程序”不设默认键。如果与别的扩展冲突或已有自定义设置，以工具栏显示的实际绑定为准；在 <code>chrome://extensions/shortcuts</code> 调整对应行。⌥T 只切换输入中译英，⌥Y 只切换划词英译中；⌥R 请绑定到“手动翻译选区或整个草稿”，“激活该扩展程序”留空。以 Chrome 快捷键设置中的实际命令为准。</p>
 <h2 id="page-health">网页连接与语言包状态</h2>
 <p>打开工具栏可检查当前网页是否已接入；显示“重新接入”时，点击即可尝试恢复，无需刷新网页，也不修改已有草稿、焦点或选区。恢复不会自动翻译旧草稿。浏览器内部页、商店、PDF 或网站访问权限限制可能阻止接入；页面变化后请重新检查。“已接入”仅确认主页面连接，不代表所有编辑器、iframe 或翻译服务均可用。</p>
 <p>使用 Chrome 本机服务时，中译英和英译中分别显示语言包状态；缺少哪个方向，就在该方向点击“准备”。“已下载”是 Chrome 报告的资源状态，点击“验证”可到准备页运行固定句验证。工具栏检查不会创建或下载模型；切换远程服务后无需准备本机语言包。</p>
@@ -82,6 +82,6 @@
 <h2 id="uninstall">8. 切回本机、重置与卸载</h2>
 <p>在设置页选择 Chrome 本机翻译并保存，即停止后续远程翻译。已保存的远程配置保留，方便下次切换；直连密钥用“清除本次会话的火山密钥”删除。要删除代理令牌，使用设置页的“清除这个服务的会话令牌”按钮；也可以在对应服务中清空并保存。已有主机授权不会因切回本机而自动撤销，可在 Chrome 扩展详情中管理网站访问权限。卸载扩展会移除该扩展的本机配置；Chrome 可能保留它统一管理的语言包。</p>
 <h2>版本状态与反馈</h2>
-<p>Chrome 1.0.8 通过个人站与 GitHub Release 手动分发；商店尚未上架，没有自动更新。请阅读<a href="privacy-policy.html">隐私政策</a>和<a href="support.html">支持与常见问题</a>。反馈时提供 Chrome/系统版本、所选服务、错误提示和脱敏示例；不要发送 AK/SK、代理访问令牌或私人草稿。</p>
+<p>Chrome 1.0.9 通过个人站与 GitHub Release 手动分发；商店尚未上架，没有自动更新。请阅读<a href="privacy-policy.html">隐私政策</a>和<a href="support.html">支持与常见问题</a>。反馈时提供 Chrome/系统版本、所选服务、错误提示和脱敏示例；不要发送 AK/SK、代理访问令牌或私人草稿。</p>
 <p>依据：<a href="https://developer.chrome.com/docs/ai/translator-api">Chrome Translator API</a> · <a href="https://developer.chrome.com/docs/extensions/reference/api/permissions">Chrome 可选权限</a> · <a href="https://developer.chrome.com/docs/extensions/reference/api/commands">Chrome 快捷键</a></p>
 </main></body></html>

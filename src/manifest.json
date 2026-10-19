@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LiveTranslate",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "minimum_chrome_version": "138",
   "description": "网页输入中译英与正文划词英译中，提供页面连接检查、按需恢复和双向语言包状态。",
   "permissions": [
@@ -55,6 +55,12 @@
       },
       "description": "手动翻译选区或整个草稿"
     },
+    "toggle_reading": {
+      "suggested_key": {
+        "default": "Alt+Y"
+      },
+      "description": "切换划词英译中开关"
+    },
     "toggle_extension": {
       "suggested_key": {
         "default": "Alt+T"
@@ -70,5 +76,5 @@
   "host_permissions": [
     "https://chatgpt.com/*"
   ],
-  "version_name": "1.0.8"
+  "version_name": "1.0.9"
 }

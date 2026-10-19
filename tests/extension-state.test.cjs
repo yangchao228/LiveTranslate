@@ -183,6 +183,32 @@ test('快捷键关闭和再次启用都同步页面', async () => {
   assert.equal(bg.data.enabled, true);
   assert.deepEqual(bg.messages.filter(m => m.tabId === 1).map(m => m.enabled), [false, true]);
 });
+test('划词快捷键独立双向切换，旧设置默认开启并广播阅读状态', async () => {
+  const bg = background(false);
+  await bg.hooks.command('toggle_reading');
+  assert.equal(bg.data.readingEnabled, false);
+  assert.equal(bg.data.enabled, false);
+  await bg.hooks.command('toggle_reading');
+  assert.equal(bg.data.readingEnabled, true);
+  assert.equal(bg.data.enabled, false);
+  assert.equal(typeof bg.data.lastUpdated, 'number');
+  assert.deepEqual(bg.messages.filter(m => m.tabId === 1).map(m => [m.type, m.enabled]), [
+    ['READING_STATE_CHANGED', false], ['READING_STATE_CHANGED', true]
+  ]);
+  assert.equal(bg.executions.length, 0, '切换不触发翻译或补接');
+  await bg.hooks.command('toggle_extension');
+  assert.equal(bg.data.enabled, true);
+  assert.equal(bg.data.readingEnabled, true, '输入快捷键不改阅读偏好');
+});
+test('划词快捷键读写失败时不广播假成功、不改变偏好', async () => {
+  for (const failure of ['rejectSyncGet', 'rejectSyncSet']) {
+    const bg = background(true, true, { [failure]: true });
+    await bg.hooks.command('toggle_reading');
+    assert.equal(bg.data.enabled, true);
+    assert.equal(bg.data.readingEnabled, undefined);
+    assert.equal(bg.messages.length, 0);
+  }
+});
 test('重新加载或更新扩展保留关闭状态', async () => {
   const bg = background(false);
   await bg.hooks.installed({ reason: 'update' });

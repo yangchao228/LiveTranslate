@@ -46,7 +46,7 @@ async function popup(options = {}) {
     commands: {
       async getAll() {
         if (options.commandsFailure) throw new Error('快捷键读取失败');
-        return options.commands ?? [{ name: 'toggle_extension', shortcut: 'Alt+T' }, { name: 'translate_selection', shortcut: 'Ctrl+Shift+Y' }];
+        return options.commands ?? [{ name: 'toggle_extension', shortcut: 'Alt+T' }, { name: 'toggle_reading', shortcut: 'Alt+Y' }, { name: 'translate_selection', shortcut: 'Ctrl+Shift+Y' }];
       }
     },
     runtime: {
@@ -100,10 +100,12 @@ async function popup(options = {}) {
   };
 }
 
-test('默认 Alt+R 手动翻译、Alt+T 启停，不绑定激活扩展且不新增权限', () => {
+test('默认 Alt+R 手动翻译、Alt+T 输入开关、Alt+Y 划词开关，不绑定激活扩展且不新增权限', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest.json')));
   assert.equal(manifest.commands.translate_selection.suggested_key.default, 'Alt+R');
   assert.equal(manifest.commands.toggle_extension.suggested_key.default, 'Alt+T');
+  assert.equal(manifest.commands.toggle_reading.suggested_key.default, 'Alt+Y');
+  assert.notEqual(manifest.commands.toggle_reading.global, true);
   assert.equal(manifest.commands._execute_action, undefined);
   assert.notEqual(manifest.commands.translate_selection.global, true);
   assert.notEqual(manifest.commands.toggle_extension.global, true);
@@ -113,6 +115,7 @@ test('默认 Alt+R 手动翻译、Alt+T 启停，不绑定激活扩展且不新�
 test('工具栏显示真实绑定，按钮经后台路由，安全入口先行可用', async () => {
   const ui = await popup();
   assert.equal(ui.get('toggle-shortcut').textContent, '输入中译英：Alt+T');
+  assert.equal(ui.get('reading-shortcut').textContent, '划词英译中：Alt+Y');
   assert.equal(ui.get('primary-shortcut').textContent, 'Ctrl+Shift+Y');
   assert.equal(ui.get('primary-shortcut').hidden, false);
   assert.equal(ui.get('shortcut-status').hidden, true);
@@ -186,6 +189,7 @@ test('未设置或空白快捷键独立提示，仍可直接点击翻译和设�
     assert.equal(ui.get('shortcut-status').hidden, false);
     assert.equal(ui.get('shortcut-status-text').textContent, '快捷键未设置，仍可点击按钮翻译。');
     assert.equal(ui.get('translate-shortcut').textContent, '手动翻译：未设置');
+    assert.equal(ui.get('reading-shortcut').textContent, '划词英译中：未设置');
     assert.equal(ui.get('translate-now').disabled, false);
     await ui.click('bind-translate-shortcut');
     assert.equal(ui.urls.at(-1), 'chrome://extensions/shortcuts');

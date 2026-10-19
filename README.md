@@ -6,7 +6,7 @@
 
 写邮件、填表单、整理英文消息时，直接写中文，查看译文后决定复制或替换。阅读英文网页时，选中一段正文，主动翻译成中文。
 
-[下载与安装教程](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.8](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.8) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
+[下载与安装教程](https://yangxingzhi.reai.group/zh/products/live-translate) · [下载 Chrome 1.0.9](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9) · [反馈问题](https://github.com/yangchao228/LiveTranslate/issues)
 
 **Chrome 扩展源码现已开源，采用 [MIT 许可证](LICENSE)。** 可自行构建、修改与分发，保留版权及许可声明；[开发说明](docs/development.md) · [参与贡献](CONTRIBUTING.md)。
 
@@ -35,7 +35,17 @@ https://github.com/user-attachments/assets/f719d65a-cbc6-4a52-8514-7e74e88a4f86
 
 完整中文句子以句号、问号或感叹号结束后，可自动显示英文译文；无标点草稿可按 **Alt+R**（Mac 为 **⌥R**）手动翻译。确认后复制，或在支持替换的输入框中替换原文；**是否发送由你决定**。
 
-## 1.0.8 更新
+## 1.0.9 更新：三个快捷键分别控制
+
+| 功能 | Windows / Linux | macOS |
+| --- | --- | --- |
+| 切换输入中译英 | Alt+T | ⌥T |
+| 切换划词英译中 | Alt+Y | ⌥Y |
+| 手动翻译正文选区或输入草稿 | Alt+R | ⌥R |
+
+工具栏显示三个命令在浏览器中的实际绑定。两个开关互不影响；手动翻译仍按当前目标检查对应开关。“激活该扩展程序”留空。更新保留已有键位；若此前把 ⌥R 绑在激活行，请在 `chrome://extensions/shortcuts` 清空它，再将 ⌥R 绑定到“手动翻译选区或整个草稿”。冲突时可自行调整，不新增权限。
+
+## 沿用 1.0.8：网页自检与双向状态
 
 - **打开工具栏即可检查网页连接**：顶端显示“当前网页已接入”；失联时可点“重新接入”，无需刷新网页，不改草稿、焦点或选区，也不会自动翻译旧草稿。
 - **双向语言包分别显示**：中译英、英译中各自显示已下载、需要准备或检查失败，按对应方向进入准备或验证页。
@@ -69,26 +79,26 @@ https://github.com/user-attachments/assets/f719d65a-cbc6-4a52-8514-7e74e88a4f86
 - **默认本机翻译**：准备好 Chrome 语言包后，默认在这台电脑翻译；可选自带密钥的火山直连或自定义服务，使用前需自行配置并了解服务的数据处理及费用。
 - **ChatGPT 重载后继续写**：从 1.0.4 起，可在插件更新或重载后重新接入已打开的 ChatGPT 页面，无需手动刷新，保留输入框里的草稿。恢复不会主动翻译旧草稿；继续输入完整中文句，或手动翻译后再决定是否替换。
 
-手动翻译默认快捷键为 **Alt+R**（Mac 为 **⌥R**），按正文选区或输入草稿使用对应场景的开关。输入中译英的启停默认为 **Alt+T**（Mac 为 **⌥T**），不会改变划词开关。以工具栏显示的实际绑定为准，冲突或未设置时可在 Chrome 扩展快捷键页面调整。
+手动翻译默认快捷键为 **Alt+R**（Mac 为 **⌥R**），按正文选区或输入草稿使用对应场景的开关。输入中译英的启停默认为 **Alt+T**（Mac 为 **⌥T**），不会改变划词开关。划词英译中开关默认为 **Alt+Y**（Mac 为 **⌥Y**），不会改变输入开关。“激活该扩展程序”留空。以工具栏显示的实际绑定为准，冲突或未设置时可在 Chrome 扩展快捷键页面调整。
 
 ## 下载、安装与更新
 
 目前通过 ZIP **手动安装和更新**，尚未上架 Chrome Web Store。适用于支持本机 Translator 的**桌面版 Chrome 138+**；版本号达标仍需设备、系统及语言包支持。**暂不支持 Edge 和手机浏览器。** Chrome 内部页面等受限页面无法使用，部分受控编辑器只支持复制译文。
 
-1. 从[个人站](https://yangxingzhi.reai.group/zh/products/live-translate)或 [GitHub Releases](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.8) 下载 `LiveTranslate-1.0.8.zip`，解压到准备长期保留的文件夹。
+1. 从[个人站](https://yangxingzhi.reai.group/zh/products/live-translate)或 [GitHub Releases](https://github.com/yangchao228/LiveTranslate/releases/tag/v1.0.9) 下载 `LiveTranslate-1.0.9.zip`，解压到准备长期保留的文件夹。
 2. 打开 `chrome://extensions/`，开启开发者模式，选择“加载已解压的扩展程序”，选中直接包含 `manifest.json` 的文件夹。
 3. 首次使用需联网，打开准备页，点击“准备语言包并验证”，成功后回到网页输入框试用。其他普通网站如未接入，可打开工具栏查看顶端连接状态，按提示点“重新接入”；手动翻译和 Alt+R／⌥R 仍可按需补接。
 
 **从 1.0.3 或更早版本首次升级：**
 
 1. 在旧版工具栏关闭翻译开关，等待显示已暂停。
-2. 备份原安装文件夹，再用 1.0.8 解压后的内容完整替换原安装文件夹的内容，保持路径不变。
-3. 在 `chrome://extensions/` 点击该插件的重载按钮，核对版本为 **1.0.8**，再开启“输入中译英”。
+2. 备份原安装文件夹，再用 1.0.9 解压后的内容完整替换原安装文件夹的内容，保持路径不变。
+3. 在 `chrome://extensions/` 点击该插件的重载按钮，核对版本为 **1.0.9**，再开启“输入中译英”。
 4. 回到 ChatGPT 即可继续写，**无需刷新页面，已有草稿保留**。第一次升级前暂停，可让旧版正确移除输入监听。
 
 从 1.0.4 起，后续覆盖原目录并重载可直接交接，ChatGPT 无需手动刷新。其他普通网站可在工具栏检查并重新接入，或用 Alt+R／⌥R 按需恢复；受限页面及未授权的嵌入输入框仍受 Chrome 权限约束。不要同时加载两个版本，也不要删除正在使用的安装目录。
 
-1.0.8 没有新增权限。1.0.4 引入的 `https://chatgpt.com/*` 网站访问权限仍仅用于重新接入 ChatGPT 主页面；自动补接未扩展到所有网站。首次从更早版本升级，若 Chrome 提示权限变更，请核对并允许 ChatGPT 的网站访问。开关、服务选择和快捷键保留；**火山 AK/SK 或服务令牌仅保存在当前会话中，扩展重载后仍需重新填写**。插件没有自动更新，后续请从个人站或 Releases 下载新版。
+1.0.9 没有新增权限。1.0.4 引入的 `https://chatgpt.com/*` 网站访问权限仍仅用于重新接入 ChatGPT 主页面；自动补接未扩展到所有网站。首次从更早版本升级，若 Chrome 提示权限变更，请核对并允许 ChatGPT 的网站访问。开关、服务选择和快捷键保留；**火山 AK/SK 或服务令牌仅保存在当前会话中，扩展重载后仍需重新填写**。插件没有自动更新，后续请从个人站或 Releases 下载新版。
 
 完整操作、常见问题及更新说明统一维护在[个人站安装页](https://yangxingzhi.reai.group/zh/products/live-translate)。历史版本和变更见 [Releases](https://github.com/yangchao228/LiveTranslate/releases) 与 [CHANGELOG](CHANGELOG.md)。
 
@@ -102,11 +112,11 @@ https://github.com/user-attachments/assets/f719d65a-cbc6-4a52-8514-7e74e88a4f86
 
 ## 关于这个仓库
 
-这个仓库公开维护 LiveTranslate 的 Chrome 扩展源码、测试、构建脚本、产品介绍、正式发行包和反馈入口。2026-10-19 从已发布的纯 Chrome 1.0.8 源码开始公开；未发布的 Edge 实验不在此版本中，既有演示、版本标签和下载附件保留。
+这个仓库公开维护 LiveTranslate 的 Chrome 扩展源码、测试、构建脚本、产品介绍、正式发行包和反馈入口。2026-10-19 从已发布的纯 Chrome 1.0.9 源码开始公开；未发布的 Edge 实验不在此版本中，既有演示、版本标签和下载附件保留。
 
 源码构建：安装 Node.js 22.12+ 后执行 `npm ci --ignore-scripts`、`npm run build`，再在 Chrome 加载 `dist/`。完整验证、可选浏览器测试和打包见[开发说明](docs/development.md)。GitHub 的“Download ZIP”下载源码；直接安装仍请使用 Releases 中的正式插件 ZIP。
 
-首个稳定源码快照为 [source-v1.0.8](https://github.com/yangchao228/LiveTranslate/tree/source-v1.0.8)。早期 `v1.0.x` 标签保留当时的发行说明，获取扩展源码请使用本源码标签或 `main`。
+首个稳定源码快照为 [source-v1.0.9](https://github.com/yangchao228/LiveTranslate/tree/source-v1.0.9)。早期 `v1.0.x` 标签保留当时的发行说明，获取扩展源码请使用本源码标签或 `main`。
 
 ## 许可证
 

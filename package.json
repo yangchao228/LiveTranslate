@@ -1,6 +1,6 @@
 {
   "name": "live_translater",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "translate web plugin",
   "main": "index.js",
   "directories": {

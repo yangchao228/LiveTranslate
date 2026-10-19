@@ -1,8 +1,8 @@
 # 从源码构建 Chrome 扩展
 
-此仓库公开与 Chrome 正式版 1.0.8 对应的完整扩展源码、图标、构建脚本和回归测试。需要 Node.js 22.12+、npm；打包检查使用 Python 3 标准库。普通本机翻译不需要 Python 服务或 API 密钥。
+此仓库公开与 Chrome 正式版 1.0.9 对应的完整扩展源码、图标、构建脚本和回归测试。需要 Node.js 22.12+、npm；打包检查使用 Python 3 标准库。普通本机翻译不需要 Python 服务或 API 密钥。
 
-首个稳定源码标签为 `source-v1.0.8`。早期 `v1.0.x` 标签是源码公开之前的发行记录，未移动这些标签或改写历史附件。
+首个稳定源码标签为 `source-v1.0.8`。早期 `v1.0.x` 标签是源码公开之前的发行记录，未移动这些标签或改写历史附件。1.0.9 起，发行标签 `v1.0.9` 直接指向对应的完整源码提交。
 
 ## 安装与构建
 
@@ -47,6 +47,7 @@ Node 测试使用 Chrome／翻译接口替身，不证明真实模型、所有�
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright node tests/run-browser.cjs
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright node tests/run-page-selection.cjs
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright node tests/run-page-health-popup.cjs
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright node tests/run-installed-shortcuts.cjs
 ```
 
 运行前完成对应的普通或本地构建。runner 默认使用独立 Chrome，不要让测试覆盖日常浏览器资料。真实网站验收仅使用固定非敏感草稿，结束后清空，不发送消息。签名用例中的密钥为公开测试固定值，禁止替换成个人凭据。

@@ -93,6 +93,8 @@ chrome.runtime.onStartup.addListener(() => { void reconnectChatGptTabs().catch((
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'toggle_extension') {
     await toggleExtension()
+  } else if (command === 'toggle_reading') {
+    await toggleReading()
   } else if (command === 'translate_selection') {
     const epoch = ++manualCommandEpoch
     lastManualError = undefined
@@ -190,6 +192,16 @@ async function toggleExtension(): Promise<void> {
     console.log(`LiveTranslate ${newState ? 'enabled' : 'disabled'}`)
   } catch (error) {
     console.error('Failed to toggle extension state:', error)
+  }
+}
+
+// 只切换阅读偏好，复用 storage.onChanged 的广播与清理逻辑。
+async function toggleReading(): Promise<void> {
+  try {
+    const state = await getExtensionPreferences()
+    await chrome.storage.sync.set({ readingEnabled: !state.readingEnabled, lastUpdated: Date.now() })
+  } catch {
+    console.error('LiveTranslate: 划词开关切换失败，请重试')
   }
 }
 
